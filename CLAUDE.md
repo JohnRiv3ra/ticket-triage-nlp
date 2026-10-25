@@ -48,13 +48,16 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
 - **2026-10-25 — Fase 0:** instalé Python, VS Code y Git; creé el repo (README, .gitignore Python, licencia MIT), lo cloné y hice mi primer commit y push.
 - **2026-10-25 — Fase 1, sesión 1 (variables):** creé `ejercicios/01_variables.py` con un ticket de ejemplo usando `str`, `int`, `float`, `bool`, `print`, `type()` y f-strings. Funciona.
   - Me costó entender **para qué** sirven las variables; se explicó como "cajas con etiqueta" y su relación con el proyecto (la descripción del ticket, la categoría y la prioridad serán variables que luego llena el modelo).
+- **2026-10-25 — Fase 1, sesión 1 (reto terminado):** agregué un segundo ticket (`descripcion2`, `categoria2`, `id_ticket2`, `prioridad2`, más `horas_abierto2` y `resuelto2`). Commit y push hechos (`859ebb2`).
+  - Error que cometí: al principio olvidé crear `categoria2` y usé `{categoria}` del primer ticket. No dio error, pero mostraba un dato equivocado → lección: el programa puede "funcionar" y aun así estar mal.
+  - Probé `print("Ticket " + id_ticket)` → `TypeError: can only concatenate str (not "int") to str`. Lo entendí solo (no se puede unir texto con número) y lo arreglé con `str(id_ticket)`.
+  - Notas para la Fase 2: `"Hardware"` ≠ `"hardware"` (hay que normalizar etiquetas), y hay tickets ambiguos (¿hardware o software?).
+  - Pendiente opcional: imprimir el ticket con f-string en vez de `+` y `str()`.
 
 ## Próximo paso
-Terminar el **reto de la sesión 1**:
-1. En `ejercicios/01_variables.py`, crear un segundo ticket inventado por mí (`descripcion_2`, `categoria_2`, `id_ticket_2`, `prioridad_2`) e imprimirlo con una f-string.
-2. Probar `print("Ticket " + id_ticket)`, leer el error y explicar qué significa (pista: tipos de datos).
-3. Hacer `git add .`, `git commit` y `git push`.
-
-Después: Fase 1, sesión 2 (condicionales `if/elif/else`, por ejemplo para asignar prioridad según palabras del ticket).
+**Fase 1, sesión 2: condicionales `if/elif/else`.**
+- Para qué: que el programa tome decisiones solo, por ejemplo asignar la prioridad según palabras del ticket (una primera versión "a mano" de lo que luego hará el modelo).
+- Archivo sugerido: `ejercicios/02_condicionales.py`.
+- Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
