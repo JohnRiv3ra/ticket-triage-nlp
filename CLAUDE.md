@@ -53,11 +53,19 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Probé `print("Ticket " + id_ticket)` → `TypeError: can only concatenate str (not "int") to str`. Lo entendí solo (no se puede unir texto con número) y lo arreglé con `str(id_ticket)`.
   - Notas para la Fase 2: `"Hardware"` ≠ `"hardware"` (hay que normalizar etiquetas), y hay tickets ambiguos (¿hardware o software?).
   - Pendiente opcional: imprimir el ticket con f-string en vez de `+` y `str()`.
+- **2026-10-26 — Fase 1, sesión 2 (condicionales):** creé `ejercicios/02_condicionales.py`. Commit y push hechos (`dac8531`).
+  - Ejercicio 1: traducir la prioridad numérica a texto con `if/elif/else` y `==`. Mi `else` avisa cuando el valor es inválido (p. ej. `7`) → programación defensiva.
+  - Ejercicio 2: decidir la prioridad leyendo la descripción con `in` y `or`, y guardar la decisión en la variable `prioridad`.
+  - Normalización: propuse por mi cuenta normalizar la entrada; usé `descripcion = descripcion.lower()` (hay que guardar el resultado con `=`).
+  - Errores que descubrí: palabras clave en MAYÚSCULAS que no coincidían con el texto, y `"caido"` ≠ `"caído"` (`.lower()` no quita tildes). Lo resolví buscando ambas formas con `or`.
+  - Lección: el código puede funcionar "de casualidad" con un ejemplo y fallar con otro → probar varios casos.
+  - Nota para la Fase 2: quitar tildes también es un paso de normalización; TF-IDF de scikit-learn ya convierte a minúsculas.
 
 ## Próximo paso
-**Fase 1, sesión 2: condicionales `if/elif/else`.**
-- Para qué: que el programa tome decisiones solo, por ejemplo asignar la prioridad según palabras del ticket (una primera versión "a mano" de lo que luego hará el modelo).
-- Archivo sugerido: `ejercicios/02_condicionales.py`.
+**Fase 1, sesión 3: funciones (`def`, parámetros, `return`).**
+- Para qué: no tener que editar el código para probar cada descripción; escribir la lógica una vez y reutilizarla. La API (Fase 3) llamará a una función parecida.
+- Idea de ejercicio: convertir el clasificador de la sesión 2 en `asignar_prioridad(descripcion)` que **devuelva** la prioridad, y probarla con varios tickets.
+- Archivo sugerido: `ejercicios/03_funciones.py`.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
