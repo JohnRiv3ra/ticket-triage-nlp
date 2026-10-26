@@ -60,12 +60,18 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Errores que descubrí: palabras clave en MAYÚSCULAS que no coincidían con el texto, y `"caido"` ≠ `"caído"` (`.lower()` no quita tildes). Lo resolví buscando ambas formas con `or`.
   - Lección: el código puede funcionar "de casualidad" con un ejemplo y fallar con otro → probar varios casos.
   - Nota para la Fase 2: quitar tildes también es un paso de normalización; TF-IDF de scikit-learn ya convierte a minúsculas.
+- **2026-10-26 — Fase 1, sesión 3 (funciones):** creé `ejercicios/03_funciones.py` con `asignar_prioridad(descripcion)`. Commit y push hechos (`7c00187`).
+  - Aprendí `def`, parámetros, `return` vs `print` (`return` entrega el valor para guardarlo; `print` solo lo muestra) y que `return` sale de la función.
+  - Por mi cuenta hice que la función devuelva dos valores (`return prioridad, mensaje`) → es una **tupla**; la desempaqué con `numero, mensaje = asignar_prioridad(...)`.
+  - Probé 3 descripciones y descubrí un error: buscaba `"lenta"` pero el texto decía `"lento"`. Corregido.
+  - Decisión: mantener la carpeta `ejercicios/`. `data/`, `notebooks/`, `models/` y `app/` se crearán cuando se necesiten (Fase 2–3).
+  - Vi qué es JSON (pares `"nombre": valor`, parecido a diccionarios; formato de la API). Mi `~/.claude/settings.json` configura la barra de estado de Claude Code (`statusline.py`: % de contexto, límite de 5 h y semanal); se ve en la versión de terminal (`claude`), no en el panel de la extensión.
 
 ## Próximo paso
-**Fase 1, sesión 3: funciones (`def`, parámetros, `return`).**
-- Para qué: no tener que editar el código para probar cada descripción; escribir la lógica una vez y reutilizarla. La API (Fase 3) llamará a una función parecida.
-- Idea de ejercicio: convertir el clasificador de la sesión 2 en `asignar_prioridad(descripcion)` que **devuelva** la prioridad, y probarla con varios tickets.
-- Archivo sugerido: `ejercicios/03_funciones.py`.
+**Fase 1, sesión 4: listas y bucle `for`.**
+- Para qué: guardar muchos tickets juntos y clasificarlos todos con `asignar_prioridad` sin repetir código. En la Fase 2 el dataset será una "lista" de miles de tickets.
+- Idea de ejercicio: crear una lista de descripciones, recorrerla con `for`, llamar a la función en cada una e imprimir el resultado. Extra: contar cuántos tickets salieron críticos.
+- Archivo sugerido: `ejercicios/04_listas.py`.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
