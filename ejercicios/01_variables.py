@@ -1,5 +1,5 @@
-# Una variable es una "caja" con nombre donde guardas un dato.
-# Las líneas que empiezan con # son comentarios: Python las ignora.
+
+
 
 # --- Texto (str) ---
 descripcion = "No puedo ingresar al ERP, sale error 500"
