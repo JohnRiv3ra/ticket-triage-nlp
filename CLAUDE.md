@@ -67,11 +67,23 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Decisión: mantener la carpeta `ejercicios/`. `data/`, `notebooks/`, `models/` y `app/` se crearán cuando se necesiten (Fase 2–3).
   - Vi qué es JSON (pares `"nombre": valor`, parecido a diccionarios; formato de la API). Mi `~/.claude/settings.json` configura la barra de estado de Claude Code (`statusline.py`: % de contexto, límite de 5 h y semanal); se ve en la versión de terminal (`claude`), no en el panel de la extensión.
 
+- **2026-10-27 — Fase 1, sesión 4 (listas y `for`):** creé `ejercicios/04_listas.py`. Commit y push hechos (`980aa46`).
+  - Aprendí listas (`[ ]`, índices desde 0, `len()`, `.append()`), el bucle `for` y a anidar un `if` dentro de un `for`.
+  - Clasifiqué 9 tickets con `asignar_prioridad` dentro de un `for`, y conté los tickets de cada prioridad con 4 contadores (`+= 1`) → 2 críticos, 2 altos, 2 medios, 3 bajos.
+  - Errores que tuve:
+    - `NameError: name 'asignar_prioridad' is not defined` → cada archivo `.py` es independiente; copié la función (más adelante se usará `import`).
+    - Ejecuté líneas sueltas con Shift+Enter: `File "<stdin>", line 1` significa modo interactivo (`>>>`); se sale con `exit()`. Para correr el archivo: botón ▷ o `python ejercicios/04_listas.py`.
+    - Usé `==` en vez de `=` al crear los contadores → `NameError` (con `==` Python compara una variable que todavía no existe).
+    - Dejé el `if/elif` fuera del `for` (sin sangría): no dio error, pero solo contó el último ticket. Se arregla seleccionando y presionando Tab.
+  - Confusión: entendí el ejercicio como "contar todos" y repetí lo mismo en cada rama. Regla: si todas las ramas de un `if` hacen lo mismo, ese código va fuera del `if`.
+  - Lección clave del proyecto: `"crash"` salió como prioridad baja → las reglas a mano no escalan; por eso se necesita el modelo de la Fase 2. La función actual sirve como **clasificador basado en reglas** para comparar contra el modelo en el README.
+  - Me cuesta leer los traceback: leerlos de abajo hacia arriba (la última línea es el error).
+
 ## Próximo paso
-**Fase 1, sesión 4: listas y bucle `for`.**
-- Para qué: guardar muchos tickets juntos y clasificarlos todos con `asignar_prioridad` sin repetir código. En la Fase 2 el dataset será una "lista" de miles de tickets.
-- Idea de ejercicio: crear una lista de descripciones, recorrerla con `for`, llamar a la función en cada una e imprimir el resultado. Extra: contar cuántos tickets salieron críticos.
-- Archivo sugerido: `ejercicios/04_listas.py`.
+**Fase 1, sesión 5: diccionarios.**
+- Para qué: guardar cada ticket con todos sus datos juntos (`id`, `descripcion`, `prioridad`, `categoria`) en vez de variables sueltas. Es casi igual al JSON que usará la API (Fase 3), y una fila de un dataset de pandas (Fase 2) se parece a un diccionario.
+- Idea de ejercicio: crear un ticket como diccionario, leer y modificar sus valores; luego una **lista de diccionarios** y recorrerla con `for`, llenando la `prioridad` de cada ticket con `asignar_prioridad`.
+- Archivo sugerido: `ejercicios/05_diccionarios.py`.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
