@@ -79,11 +79,23 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Lección clave del proyecto: `"crash"` salió como prioridad baja → las reglas a mano no escalan; por eso se necesita el modelo de la Fase 2. La función actual sirve como **clasificador basado en reglas** para comparar contra el modelo en el README.
   - Me cuesta leer los traceback: leerlos de abajo hacia arriba (la última línea es el error).
 
+- **2026-10-30 — Fase 1, sesión 5 (diccionarios):** creé `ejercicios/05_diccionarios.py`. Commit y push hechos (`418c417`).
+  - Aprendí diccionarios (`{ }`, `"clave": valor`, leer con `ticket["clave"]`, modificar y agregar claves) y la diferencia con las listas: lista = muchas cosas; diccionario = los datos de una cosa.
+  - Hice una **lista de diccionarios** con 5 tickets con `"prioridad": None`, la recorrí con `for` y llené cada prioridad con `asignar_prioridad(ticket["descripcion"])`. La lista quedó cambiada: la variable del `for` es el mismo diccionario, no una copia → flujo del sistema en miniatura (entran sin prioridad, salen clasificados).
+  - Tipos: escribí `"false"` (texto) en vez de `False` y `"3"` en vez de `3`; se ven parecidos pero `type()` y `== 3` muestran la diferencia. En la Fase 2, los CSV traen todo como texto → revisar tipos al limpiar.
+  - Errores:
+    - `KeyError: 'categoria'` → pedí una clave que no existe en ese diccionario.
+    - Causa: llamé `tickets` al diccionario del ejercicio 1 (borrando la lista) y seguía usando `ticket`, que después del `for` conserva el **último** valor del bucle. Lo arreglé con un nombre propio.
+    - Volví a dejar un `print` dentro del `for` por la sangría (se imprimía 5 veces).
+  - `"La impresora no funciona"` salió baja → otra vez las reglas a mano se quedan cortas.
+  - Avance: voy más rápido que el plan (5 sesiones en 6 días). Faltan ~2 sesiones de Fase 1: archivos y un repaso integrador.
+
 ## Próximo paso
-**Fase 1, sesión 5: diccionarios.**
-- Para qué: guardar cada ticket con todos sus datos juntos (`id`, `descripcion`, `prioridad`, `categoria`) en vez de variables sueltas. Es casi igual al JSON que usará la API (Fase 3), y una fila de un dataset de pandas (Fase 2) se parece a un diccionario.
-- Idea de ejercicio: crear un ticket como diccionario, leer y modificar sus valores; luego una **lista de diccionarios** y recorrerla con `for`, llenando la `prioridad` de cada ticket con `asignar_prioridad`.
-- Archivo sugerido: `ejercicios/05_diccionarios.py`.
+**Fase 1, sesión 6: archivos (leer y escribir).**
+- Para qué: que los tickets no se pierdan al cerrar el programa. Guardarlos en un archivo y volver a cargarlos es el paso previo a leer el dataset en la Fase 2 (CSV) y a enviar datos por la API (JSON).
+- Idea de ejercicio: guardar la lista de diccionarios de la sesión 5 en un archivo (con `open`, `with`, y el módulo `csv` o `json`), y en otro paso leerlo de vuelta y clasificar los tickets cargados.
+- Archivo sugerido: `ejercicios/06_archivos.py`.
 - Terminar con `git add → commit → push`.
+- Después: sesión 7, repaso integrador (mini-clasificador completo) → entrar a la Fase 2.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
