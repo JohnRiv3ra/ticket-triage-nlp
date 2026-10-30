@@ -15,6 +15,7 @@
 - Cuando tenga un error, ayúdame a **leer e interpretar el mensaje** antes de darme la solución.
 - Cada sesión debe terminar con algo funcionando y un `git add → commit → push`.
 - Uso la terminal integrada de VS Code (en el proyecto).
+- **Recuérdame siempre** ejecutar `pip freeze > requirements.txt` después de cada `pip install` (y revisar que la terminal muestre `(.venv)` antes de trabajar; si no, `.venv\Scripts\Activate.ps1`).
 
 ## El proyecto
 Sistema que clasifica y prioriza automáticamente tickets de soporte técnico con PLN.
@@ -32,13 +33,23 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
 ### Notas a tener presentes
 - Muchos datasets de tickets en Kaggle están en inglés; el de "Customer Support on Twitter" no trae etiquetas de categoría ni prioridad. Hay que decidir idioma y dataset en la Fase 2.
 - Predecir prioridad es más difícil que categoría; es normal que salga con menor precisión.
+- **Idioma decidido (2026-10-30): empezar en inglés**, un solo idioma, hasta tener el primer modelo con métricas. Motivo: hay más datasets etiquetados con categoría y prioridad. Si al revisar datasets aparece uno bueno en español, se puede reconsiderar.
+- Escribir el entrenamiento como una **receta reutilizable** (p. ej. `entrenar(ruta_csv)`): mismo código, distinto dataset → distinto modelo.
+
+### 💡 Idea futura: sistema bilingüe (ES + EN) — para mejorar el GitHub
+Cuando el modelo en inglés funcione, agregar español y **comparar con métricas**:
+- **A. Un modelo mezclado:** entrenar una vez con ES + EN juntos (TF-IDF trata `"impresora"` y `"printer"` como palabras distintas). Riesgo: si un idioma domina, el otro se aprende mal.
+- **B. Dos modelos + "portero":** detectar el idioma (o que el usuario lo elija en el formulario) y enviar el ticket al modelo de ese idioma.
+- **C. Traducir todo a un idioma** (descartada por ahora: depende de un traductor externo).
+- Condición obligatoria: **mismas etiquetas** en ambos datasets → hacer un **mapeo** (diccionario) de etiquetas.
+- Resultado para el README: "probé un modelo mezclado contra dos modelos separados y estos fueron los resultados".
 
 ## Hoja de ruta (aprox. 5 meses a 1 h/día)
 | Fase | Duración | Contenido | Estado |
 |---|---|---|---|
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
-| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | 🔄 Siguiente |
+| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | 🔄 En curso |
 | 3. API | 3 semanas | FastAPI, endpoints, SQLite | ⏳ |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
@@ -112,13 +123,20 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Error clave: olvidé `encoding="utf-8"` al abrir → "caído" llegó corrupto y se clasificó como baja, **sin dar error**. Lo descubrí comparando los números con lo esperado y con un `print` de depuración dentro del `for`.
   - Hábitos: avanzar paso a paso ejecutando en cada paso; `print` temporales para investigar y luego borrarlos.
 
+- **2026-10-30 — Fase 2, sesión 1 (entorno para el modelo).** Commit y push hechos (`816d76d`).
+  - Entorno virtual: `python -m venv .venv` y activarlo con `.venv\Scripts\Activate.ps1` → aparece `(.venv)`. Cada proyecto tiene su propio Python y sus librerías. `.venv` ya está en `.gitignore` (no se sube).
+  - `pip install pandas` → pandas 3.1.0 (trae dependencias como `numpy`). El `ModuleNotFoundError` desapareció.
+  - `pip freeze > requirements.txt`: la "lista de compras" del proyecto (`nombre==versión`); quien clone el repo usa `pip install -r requirements.txt`. `>` sobrescribe, como el modo `"w"`.
+  - Pregunté qué significa "crash": un programa que se cierra de golpe por un error no manejado. En `04_listas.py` es solo texto de un ticket.
+  - Decisión: **un solo idioma (inglés) primero**; el sistema bilingüe queda como idea futura (ver sección "Idea futura").
+
 ## Próximo paso
-**Fase 2, sesión 1: preparar el terreno para el modelo.**
-- Para qué: el modelo aprenderá las reglas solo a partir de muchos tickets ya etiquetados, en vez de escribirlas a mano (las reglas fallaron con "crash", "no abre word", "la impresora no funciona").
-- Decisiones pendientes: **dataset** (con etiquetas de categoría y prioridad) e **idioma** (español o inglés). Ver "Notas a tener presentes".
-- Conceptos nuevos: **entorno virtual** (`venv`) para instalar librerías solo en este proyecto, `pip install`, y un archivo `requirements.txt`.
-- Primer contacto con **pandas**: cargar un CSV y explorarlo (`head()`, `shape`, contar etiquetas).
-- Crear las carpetas `data/` (y luego `notebooks/`, `models/`) cuando se usen.
+**Fase 2, sesión 2: elegir el dataset y primer contacto con pandas.**
+- Para qué: el modelo aprende de tickets ya etiquetados; sin un buen dataset no hay modelo.
+- Revisar juntos datasets en inglés con columnas de **texto**, **categoría** y **prioridad** (Kaggle / Hugging Face). Candidato a verificar: `Tobi-Bueck/customer-support-tickets` (columnas `subject`, `body`, `queue`, `priority`, `language`; parece inglés/alemán → habría que filtrar inglés).
+- Crear la carpeta `data/` y decidir si el CSV se sube a GitHub (si es grande, no; se documenta cómo descargarlo).
+- pandas: `pd.read_csv()`, `.head()`, `.shape`, `.columns`, `.value_counts()` para contar etiquetas.
+- Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
