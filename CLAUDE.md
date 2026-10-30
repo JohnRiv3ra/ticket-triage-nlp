@@ -90,12 +90,24 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - `"La impresora no funciona"` salió baja → otra vez las reglas a mano se quedan cortas.
   - Avance: voy más rápido que el plan (5 sesiones en 6 días). Faltan ~2 sesiones de Fase 1: archivos y un repaso integrador.
 
+- **2026-10-30 — Fase 1, sesión 6 (archivos):** creé `ejercicios/06_archivos.py`. Commit y push hechos (`91e9531`).
+  - Entendí que las variables viven en la RAM y se pierden al cerrar el programa; para que sobrevivan hay que guardarlas en el disco.
+  - Texto: `with open(...)`, modos `"w"` (borra y escribe), `"r"` (lee), `"a"` (agrega al final; al ejecutar 2 veces se duplicaron las líneas) y `encoding="utf-8"` para tildes. `"\n"` = salto de línea.
+  - `FileNotFoundError: No such file or directory` → el modo `"r"` no crea archivos; lo interpreté solo.
+  - JSON: `import json`, `json.dump(lista, archivo, indent=4, ensure_ascii=False)` para guardar y `json.load(archivo)` para cargar. `None` se guarda como `null`.
+  - Error de lógica: clasifiqué los tickets cargados pero no volví a guardarlos → el archivo seguía con `null` (como editar en Word sin guardar). Lo arreglé con un segundo `json.dump` después del `for`.
+  - Prueba de fuego: un archivo aparte que solo carga `tickets.json` mostró las prioridades → los datos sobrevivieron. Igual que en el proyecto: un programa entrena y guarda el modelo, y la API lo carga.
+  - Los archivos se crean en la carpeta desde donde se ejecuta (raíz del proyecto): `tickets.json` y `tickets.txt` quedaron en la raíz.
+  - Pendiente: `ejercicios/06_prueba` (sin `.py`) se subió por error; quiero borrarlo.
+  - Para ver el contexto usado: `/context` en el chat, o la barra de estado ejecutando `claude` en la terminal.
+
 ## Próximo paso
-**Fase 1, sesión 6: archivos (leer y escribir).**
-- Para qué: que los tickets no se pierdan al cerrar el programa. Guardarlos en un archivo y volver a cargarlos es el paso previo a leer el dataset en la Fase 2 (CSV) y a enviar datos por la API (JSON).
-- Idea de ejercicio: guardar la lista de diccionarios de la sesión 5 en un archivo (con `open`, `with`, y el módulo `csv` o `json`), y en otro paso leerlo de vuelta y clasificar los tickets cargados.
-- Archivo sugerido: `ejercicios/06_archivos.py`.
+**Fase 1, sesión 7: repaso integrador (mini-clasificador completo).**
+- Para qué: juntar todo lo de la Fase 1 en un solo programa antes de entrar a la Fase 2.
+- Idea de ejercicio: un programa que **cargue** tickets desde un JSON, los **clasifique** con `asignar_prioridad`, **cuente** cuántos hay de cada prioridad, **guarde** el resultado y muestre un resumen. Extra: pedir una descripción al usuario con `input()` y clasificarla.
+- Opcional: aprender a **importar** `asignar_prioridad` desde otro archivo en vez de copiarla.
+- Archivo sugerido: `ejercicios/07_repaso.py`.
 - Terminar con `git add → commit → push`.
-- Después: sesión 7, repaso integrador (mini-clasificador completo) → entrar a la Fase 2.
+- Después: **Fase 2 (el modelo)**: elegir dataset e idioma, instalar pandas.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
