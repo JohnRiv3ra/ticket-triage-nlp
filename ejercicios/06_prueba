@@ -1,0 +1,7 @@
+import json
+
+with open("tickets.json", "r", encoding="utf-8") as archivo_json:
+    tickets_leidos = json.load(archivo_json)
+
+for ticket in tickets_leidos:
+    print(f"Ticket {ticket['id']} | {ticket['descripcion']} | Prioridad: {ticket['prioridad']}")

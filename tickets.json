@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "descripcion": "El servidor está caído",
+        "prioridad": 4
+    },
+    {
+        "id": 2,
+        "descripcion": "La impresora no funciona",
+        "prioridad": 1
+    },
+    {
+        "id": 3,
+        "descripcion": "No puedo ingresar al ERP, sale error 500",
+        "prioridad": 3
+    },
+    {
+        "id": 4,
+        "descripcion": "El sistema está lento",
+        "prioridad": 2
+    },
+    {
+        "id": 5,
+        "descripcion": "Error al cargar el sistema",
+        "prioridad": 3
+    }
+]

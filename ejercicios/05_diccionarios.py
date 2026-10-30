@@ -36,7 +36,7 @@ for ticket in tickets:
 print(tickets)
 
 print("--------------------------------------------")
-
+# Diccionarios ejemplo
 ticket_ejemplo= {
     "id": 1,
     "categoria": "Sistemas",
