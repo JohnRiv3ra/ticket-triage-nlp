@@ -48,9 +48,3 @@ print(f"Tickets de prioridad 1: {contador_1}")
 print(f"Tickets de prioridad 2: {contador_2}")
 print(f"Tickets de prioridad 3: {contador_3}")
 print(f"Tickets de prioridad 4: {contador_4}")
-
-
-
-""" input_descripcion = input("Ingrese la descripción del ticket: ")
-prioridad, mensaje = asignar_prioridad(input_descripcion)
-print(f"Número de prioridad: {prioridad}, mensaje: {mensaje}") """
