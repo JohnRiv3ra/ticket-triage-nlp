@@ -145,12 +145,24 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
     - Conté `priority` dos veces y faltó `queue`; puse un `#print(...)` nuevo en vez de comentar la línea original. `Ctrl + }` comenta/descomenta.
   - Aparte: subí la limpieza de `07_repaso.py` (`e58638c`).
 
+- **2026-10-30 — Fase 2, sesión 3 (filtrar inglés y guardar CSV limpio).** Script `modelo/02_filtrar.py`.
+  - **Máscara booleana:** `df["language"] == "en"` compara todas las filas a la vez → columna de `True`/`False` (`dtype: bool`); `df[mascara]` deja solo las filas `True`. Equivale a un `for` + `if` + `.append()` en una línea.
+  - **Elegir varias columnas:** `df[["subject", "body", "queue", "priority"]]` → corchete de afuera = "elige de la tabla", de adentro = la **lista** de nombres.
+  - Transformación: `(28587, 16)` → filtro de filas → `(16338, 16)` → filtro de columnas → `(16338, 4)`. 16.338 coincide con `value_counts()` → el filtro está bien.
+  - `df_en.to_csv("data/tickets_en.csv", index=False)` (como `json.dump`) + prueba de fuego cargándolo de nuevo. Probé quitar `index=False` → aparece una columna extra con los números de fila (el **índice**).
+  - **`_raw` = "crudo"** (ingredientes sin cocinar): el original nunca se modifica; la receta (`02_filtrar.py`) crea un archivo nuevo. Si me equivoco, corrijo la receta y la vuelvo a ejecutar. `tickets_raw.csv` 26 MB → `tickets_en.csv` 7 MB.
+  - Errores:
+    - Creé el script dentro de `ejercicios/modelo/` por error; arrastrarlo en VS Code no funcionó. Lo moví con `Move-Item origen destino` y borré la carpeta con `Remove-Item`. Lección: si el explorador confunde, `ls` en la terminal dice la verdad.
+    - Escribí `columnas = df_en[[...]]` (la tabla ya recortada) y luego `df_en[columnas]` → `TypeError: Boolean array expected for the condition, not object`: pandas creyó que era una máscara. Arreglo: `columnas` debe ser solo la lista de nombres. Una línea sin `=` (`df_en[columnas]`) no guarda nada.
+    - Los traceback de pandas muestran archivos internos (`generic.py`); lo importante es la última línea y la línea de **mi** código.
+
 ## Próximo paso
-**Fase 2, sesión 3: filtrar el inglés y guardar un CSV limpio.**
-- Para qué: el modelo se entrena solo con tickets en inglés; separar "datos crudos" de "datos listos" para no repetir el filtrado cada vez.
-- Filtrar con `df[df["language"] == "en"]` (máscara booleana: el `==` de los `if`, aplicado a todas las filas a la vez).
-- Quedarse con las columnas útiles (`subject`, `body`, `queue`, `priority`) y decidir qué hacer con los `subject` vacíos (p. ej. unir `subject` + `body` en una columna `texto`).
-- Guardar en `data/tickets_en.csv` con `df.to_csv(..., index=False)` y comprobar cargándolo de nuevo (como la "prueba de fuego" de la sesión 6).
+**Fase 2, sesión 4: crear la columna `texto` (lo que leerá el modelo).**
+- Para qué: el modelo necesita **un solo texto** por ticket; unir `subject` + `body` da más pistas.
+- Problema: 3.838 tickets tienen `subject` vacío (`NaN`) → manejarlo antes de unir (p. ej. `.fillna("")`) para no perder el `body`.
+- Crear la columna nueva con `df["texto"] = ...` (como agregar una clave a un diccionario) y revisar algunos ejemplos.
+- Decidir si se hace en `02_filtrar.py` (receta de limpieza) y se vuelve a guardar `tickets_en.csv`.
+- Después: limpieza de texto y **TF-IDF** (convertir palabras en números).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
