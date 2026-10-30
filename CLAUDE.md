@@ -37,8 +37,8 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
 | Fase | Duración | Contenido | Estado |
 |---|---|---|---|
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
-| 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | 🔄 En curso |
-| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ⏳ |
+| 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
+| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | 🔄 Siguiente |
 | 3. API | 3 semanas | FastAPI, endpoints, SQLite | ⏳ |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
@@ -101,13 +101,24 @@ Flujo final: el usuario escribe su problema → el modelo predice **categoría**
   - Pendiente: `ejercicios/06_prueba` (sin `.py`) se subió por error; quiero borrarlo.
   - Para ver el contexto usado: `/context` en el chat, o la barra de estado ejecutando `claude` en la terminal.
 
+- **2026-10-30 — Fase 1, sesión 7 (repaso integrador) → ✅ Fase 1 completada.** Commit y push hechos (`d49efaa`).
+  - `import` de módulo propio: moví `asignar_prioridad` a `ejercicios/clasificador.py` (una sola copia) y la importo con `from clasificador import asignar_prioridad` (sin `.py`).
+    - `ModuleNotFoundError: No module named 'clasificador'` → había llamado al archivo `07_clasificador.py`; un módulo importable no puede empezar con número.
+    - Al importar, Python crea `__pycache__/` (ya excluido por `.gitignore`).
+    - Por error escribí una versión distinta de la función (devolvía texto); la reemplacé por la real.
+  - `input()`: el programa espera a que escriba y presione Enter; siempre devuelve **str**. Ctrl+C detiene un programa.
+  - Las tuplas también se leen por posición (`resultado[0]`), pero llamar la función dos veces duplica el trabajo → mejor desempacar una vez.
+  - `07_repaso.py`: carga `tickets.json` → clasifica → cuenta por prioridad → guarda `tickets_clasificados.json` (archivo nuevo, sin sobrescribir la entrada) → resumen. Es el flujo del sistema final en pequeño.
+  - Error clave: olvidé `encoding="utf-8"` al abrir → "caído" llegó corrupto y se clasificó como baja, **sin dar error**. Lo descubrí comparando los números con lo esperado y con un `print` de depuración dentro del `for`.
+  - Hábitos: avanzar paso a paso ejecutando en cada paso; `print` temporales para investigar y luego borrarlos.
+
 ## Próximo paso
-**Fase 1, sesión 7: repaso integrador (mini-clasificador completo).**
-- Para qué: juntar todo lo de la Fase 1 en un solo programa antes de entrar a la Fase 2.
-- Idea de ejercicio: un programa que **cargue** tickets desde un JSON, los **clasifique** con `asignar_prioridad`, **cuente** cuántos hay de cada prioridad, **guarde** el resultado y muestre un resumen. Extra: pedir una descripción al usuario con `input()` y clasificarla.
-- Opcional: aprender a **importar** `asignar_prioridad` desde otro archivo en vez de copiarla.
-- Archivo sugerido: `ejercicios/07_repaso.py`.
+**Fase 2, sesión 1: preparar el terreno para el modelo.**
+- Para qué: el modelo aprenderá las reglas solo a partir de muchos tickets ya etiquetados, en vez de escribirlas a mano (las reglas fallaron con "crash", "no abre word", "la impresora no funciona").
+- Decisiones pendientes: **dataset** (con etiquetas de categoría y prioridad) e **idioma** (español o inglés). Ver "Notas a tener presentes".
+- Conceptos nuevos: **entorno virtual** (`venv`) para instalar librerías solo en este proyecto, `pip install`, y un archivo `requirements.txt`.
+- Primer contacto con **pandas**: cargar un CSV y explorarlo (`head()`, `shape`, contar etiquetas).
+- Crear las carpetas `data/` (y luego `notebooks/`, `models/`) cuando se usen.
 - Terminar con `git add → commit → push`.
-- Después: **Fase 2 (el modelo)**: elegir dataset e idioma, instalar pandas.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
