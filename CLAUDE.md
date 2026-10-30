@@ -130,12 +130,27 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Pregunté qué significa "crash": un programa que se cierra de golpe por un error no manejado. En `04_listas.py` es solo texto de un ticket.
   - Decisión: **un solo idioma (inglés) primero**; el sistema bilingüe queda como idea futura (ver sección "Idea futura").
 
+- **2026-10-30 — Fase 2, sesión 2 (dataset y primer contacto con pandas).** Commit y push hechos (`98d2091`).
+  - Dataset elegido: **`Tobi-Bueck/customer-support-tickets`** (Hugging Face), archivo `aa_dataset-tickets-multi-lang-5-2-50-version.csv` → guardado como `data/tickets_raw.csv` ("raw" = original, no se toca).
+    - Etiquetas: `queue` (10 categorías) y `priority` (high / medium / low). Texto: `subject` + `body`. También trae `type` (Incident, Request, Problem, Change).
+    - Probablemente **sintético** (generado con IA) y licencia **CC-BY-NC-4.0** (citar al autor, sin uso comercial) → decirlo en el README.
+  - `data/` agregado al `.gitignore`: los datos no se suben; en el README se explicará cómo descargarlos.
+  - Script `modelo/01_explorar.py`: `import pandas as pd`, `pd.read_csv()`, `df.shape`, `df.columns`, `df.head(10)` y `df["columna"].value_counts()` (= mis 4 contadores en una línea). `shape`/`columns` sin paréntesis (datos), `head()` con paréntesis (acción).
+  - Hallazgos: **28.587 tickets** (16 columnas): **16.338 en inglés**, 12.249 en alemán. Categorías **muy desbalanceadas** (Technical Support 8.362 vs. General Inquiry 405) → mirar **F1 por clase**, no solo accuracy. Prioridad: `low` tiene la mitad que las otras. `subject` vacío en 3.838 tickets; `body` siempre lleno → el modelo leerá sobre todo `body` (más palabras = más pistas).
+  - Revisión de viabilidad (inglés): 0 `body` duplicados, mediana de 55 palabras por ticket y la prioridad se relaciona con la categoría con sentido (Service Outages → 70 % high) → las etiquetas no son aleatorias.
+  - `NaN` = "no hay dato" (como `None`). `...` en la tabla = pandas esconde columnas. `Kl�rung` = la terminal muestra mal la letra; el archivo está bien.
+  - Errores:
+    - Creé la carpeta como `models/` y ejecuté `modelo/...` → `[Errno 2] No such file or directory`. Renombrada a `modelo/` (código); `models/` queda reservada para los `.pkl`.
+    - La ruta del error mostraba `...\Python311\python.exe` → el **`.venv` no estaba activo** (pandas no se habría encontrado). Lección: leer **todo** el mensaje, no solo la última línea.
+    - Conté `priority` dos veces y faltó `queue`; puse un `#print(...)` nuevo en vez de comentar la línea original. `Ctrl + }` comenta/descomenta.
+  - Aparte: subí la limpieza de `07_repaso.py` (`e58638c`).
+
 ## Próximo paso
-**Fase 2, sesión 2: elegir el dataset y primer contacto con pandas.**
-- Para qué: el modelo aprende de tickets ya etiquetados; sin un buen dataset no hay modelo.
-- Revisar juntos datasets en inglés con columnas de **texto**, **categoría** y **prioridad** (Kaggle / Hugging Face). Candidato a verificar: `Tobi-Bueck/customer-support-tickets` (columnas `subject`, `body`, `queue`, `priority`, `language`; parece inglés/alemán → habría que filtrar inglés).
-- Crear la carpeta `data/` y decidir si el CSV se sube a GitHub (si es grande, no; se documenta cómo descargarlo).
-- pandas: `pd.read_csv()`, `.head()`, `.shape`, `.columns`, `.value_counts()` para contar etiquetas.
+**Fase 2, sesión 3: filtrar el inglés y guardar un CSV limpio.**
+- Para qué: el modelo se entrena solo con tickets en inglés; separar "datos crudos" de "datos listos" para no repetir el filtrado cada vez.
+- Filtrar con `df[df["language"] == "en"]` (máscara booleana: el `==` de los `if`, aplicado a todas las filas a la vez).
+- Quedarse con las columnas útiles (`subject`, `body`, `queue`, `priority`) y decidir qué hacer con los `subject` vacíos (p. ej. unir `subject` + `body` en una columna `texto`).
+- Guardar en `data/tickets_en.csv` con `df.to_csv(..., index=False)` y comprobar cargándolo de nuevo (como la "prueba de fuego" de la sesión 6).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
