@@ -156,14 +156,41 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
     - Escribí `columnas = df_en[[...]]` (la tabla ya recortada) y luego `df_en[columnas]` → `TypeError: Boolean array expected for the condition, not object`: pandas creyó que era una máscara. Arreglo: `columnas` debe ser solo la lista de nombres. Una línea sin `=` (`df_en[columnas]`) no guarda nada.
     - Los traceback de pandas muestran archivos internos (`generic.py`); lo importante es la última línea y la línea de **mi** código.
 
+- **2026-10-30 — Fase 2, sesión 4 (columna `texto` y limpieza).** Commit y push hechos (`5735a83`). En `modelo/02_filtrar.py`.
+  - Crear columna: `df_en["texto"] = df_en["subject"] + " " + df_en["body"]` (como agregar una clave a un diccionario, pero para todas las filas). El `" "` evita `"PrinterDear"`.
+  - **El `NaN` contamina:** `NaN + " " + body` → `NaN`. Medí con `.isna().sum()` → **2.607** textos vacíos **sin error**. Arreglo: `.fillna("")` → **0**. Por mi cuenta también puse `fillna` en `body` (programación defensiva).
+  - 2.607 ≠ 3.838 porque 3.838 era del dataset completo (EN + DE); un número depende de **sobre qué tabla** se calcula.
+  - `.iloc[0]` = fila por posición (como `lista[0]`); `head()` corta los textos largos.
+  - Los `\n` del dataset son **literales** (barra + `n`, no saltos de línea) → TF-IDF crearía "palabras" basura como `nI`, `nCould`. Limpieza: `.str.replace("\\n", " ", regex=False)` (`"\\"` = una barra real) y `.str.strip()` (espacios al inicio/final). `.str` aplica métodos de texto a toda la columna.
+  - Verificado en todo el dataset: 0 barras, 0 espacios al inicio, 0 vacíos. Los dobles espacios no importan a TF-IDF → no toda limpieza hace falta.
+  - "Dear Customer Support Team" se repite en casi todos → no ayuda a distinguir; TF-IDF le da poco peso (la "IDF").
+  - Limpieza final del script: borré los `print` de investigación (máscara, `iloc`, `isna`) y dejé los `shape`. Regla: si la línea cambia/guarda datos se queda; si solo mostraba algo para investigar, se borra. No supe cuáles borrar al principio → pedir los números de línea.
+  - **Me costó entender la limpieza** → pedí más práctica antes de seguir.
+
+- **2026-10-31 — Fase 2, sesión 5 (práctica de limpieza con dataset de juguete).** Commit y push hechos (`34be343`). Archivo `ejercicios/08_limpieza.py`.
+  - `pd.DataFrame(lista_de_diccionarios)`: cada diccionario → fila, cada clave → columna. `None` → `NaN`.
+  - Con 6–8 tickets **vi cada paso** en vez de solo números.
+  - Etiquetas: `value_counts()` mostró 5 categorías en vez de 3 (`"Hardware"`, `"hardware "`, `"Access"`…). Arreglo **encadenando**: `.str.lower().str.strip()` (se lee de izquierda a derecha). El espacio de `"hardware "` es **invisible** en la tabla.
+  - Índice tras filtrar: `0, 1, 2, 4, 5` (las filas conservan su etiqueta) → `.iloc` usa la **posición**, no el índice.
+  - Vi las filas 1 y 5 con `texto` = `NaN` sin `fillna`; con `fillna("")` quedaba `" I cannot log in"`. **Truco de los corchetes** `print("[" + texto + "]")` para ver espacios invisibles. Mi predicción falló (creía que no habría espacio) → las predicciones sirven para descubrir.
+  - `.strip()` solo quita espacios de los **bordes**, no del medio (no importa para TF-IDF).
+  - **Duplicados:** `df.duplicated()` (máscara; marca solo las copias, no el original), `.sum()` para contarlos y `df = df.drop_duplicates()`. Un "casi gemelo" (`"access "` vs `"Access"`) **no** se detecta si se quitan duplicados antes de normalizar → `value_counts()` mostraba `access` dos veces (pista del espacio invisible).
+  - `shape` de una columna = `(7,)` (una dimensión); de una tabla = `(filas, columnas)`.
+  - Errores (ninguno dio mensaje de error):
+    - Volví a crear `df_en = df[mascara]` después de agregar `texto` → la columna desaparecía (como en la sesión 5).
+    - Limpié `df["categoria"]` **después** de copiar `df_en` → la copia seguía sucia.
+    - Usé `regex=True` → `"\\n"` se interpreta como salto de línea real y no reemplaza nada.
+    - Al copiar de `02_filtrar.py` hay que cambiar los nombres de columnas (si no, `KeyError`).
+  - **Gran lección: el orden de la receta importa** → normalizar → quitar duplicados → filtrar → unir con `fillna` → limpiar texto. Medir (`value_counts`, `shape`, `.sum()`) y mirar (tabla, corchetes) en cada paso.
+  - Pendiente: `modelo/02_filtrar.py` no quita duplicados (el dataset real tiene 0, pero se podría agregar por buena práctica).
+
 ## Próximo paso
-**Fase 2, sesión 4: crear la columna `texto` (lo que leerá el modelo).**
-- Para qué: el modelo necesita **un solo texto** por ticket; unir `subject` + `body` da más pistas.
-- Problema: 3.838 tickets tienen `subject` vacío (`NaN`) → manejarlo antes de unir (p. ej. `.fillna("")`) para no perder el `body`.
-- Crear la columna nueva con `df["texto"] = ...` (como agregar una clave a un diccionario) y revisar algunos ejemplos.
-- Decidir si se hace en `02_filtrar.py` (receta de limpieza) y se vuelve a guardar `tickets_en.csv`.
-- Después: limpieza de texto y **TF-IDF** (convertir palabras en números).
-- Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
+**Fase 2, sesión 6: TF-IDF (convertir palabras en números).**
+- Para qué: el modelo solo entiende números; TF-IDF convierte cada ticket en una fila de números según qué palabras tiene y qué tan importantes son (las que aparecen en todos, como "Dear Customer Support", pesan poco).
+- Instalar scikit-learn: `pip install scikit-learn` → **luego `pip freeze > requirements.txt`**.
+- Primero con pocos textos hechos a mano (como en la sesión 5) para **ver** la tabla de números; después con `tickets_en.csv`.
+- Conceptos: `TfidfVectorizer`, `.fit_transform()`, vocabulario (`get_feature_names_out()`), por qué TF-IDF ya convierte a minúsculas.
+- Recordar: `(.venv)` activo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
