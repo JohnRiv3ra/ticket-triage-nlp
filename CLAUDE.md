@@ -48,6 +48,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 - **Sacar `CLAUDE.md` del repo público** (decidido 2026-11-02 dejarlo para el final): agregar `CLAUDE.md` al `.gitignore` → `git rm --cached CLAUDE.md` (**con** `--cached`, para no borrarlo del disco) → commit y push. Las versiones viejas quedan en el historial (aceptado).
 - Escribir en el README una sección corta **"Qué aprendí construyendo este proyecto"** con lo mejor de la bitácora (versión pulida para reclutadores).
 - Mencionar en el README que el dataset es sintético, su licencia CC-BY-NC-4.0 y cómo descargarlo.
+- Extra opcional: comparar contra **DistilBERT/BETO entrenado en Google Colab (GPU)** y traer el `.pkl`/modelo con la misma versión de librerías.
 
 ## Hoja de ruta (aprox. 5 meses a 1 h/día)
 | Fase | Duración | Contenido | Estado |
@@ -213,12 +214,25 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
     - `print(matriz.shape)` quedó fuera del comentario `""" """` → `NameError`, porque `matriz` se creaba dentro del comentario.
   - Idea: entrenar en **Google Colab** y traer el `.pkl` con `joblib` se puede (ojo: misma versión de scikit-learn). Para TF-IDF + LR no hace falta (entrena en segundos aquí); tiene sentido para **BETO/DistilBERT** (GPU) en la Fase 6. A los reclutadores les importa la reproducibilidad y el criterio para elegir la herramienta, no Colab por sí solo.
 
+- **2026-11-03 — Fase 2, sesión 8 (primer modelo: Regresión Logística para la categoría).** Commit y push hechos (`f4c7b4d`). En `modelo/03_entrenar.py`.
+  - `LogisticRegression(max_iter=1000)` = el "estudiante" vacío; `modelo.fit(X_train_tfidf, y_train)` estudia (recibe preguntas **y** respuestas); `modelo.predict(X_test_tfidf)` hace el examen (solo preguntas). `max_iter` = vueltas de estudio máximas.
+  - **Accuracy** = aciertos / total (`accuracy_score(y_test, predicciones)`, primero las correctas). Primer resultado: **0.47**.
+  - **Línea base** = el "modelo flojo" que siempre responde la categoría más común: Technical Support = **29 %** de los tickets en inglés. El tutor dijo primero 51 % por usar el conteo del dataset completo (EN + DE) → otra vez: un número depende de sobre qué tabla se calcula. 47 % > 29 % → el modelo sí aprendió, pero todavía es bajo.
+  - Predije "más del 60 %" porque los 10 primeros tickets dieron 6/10 → con 3.268 salió 47 %. Una muestra pequeña engaña.
+  - **`classification_report`** (nota por categoría): `support` = cuántos hay en el examen; **precision** = cuando dice X, ¿acierta?; **recall** = de los X reales, ¿cuántos encontró?; **F1** = combina ambas. `macro avg` = todas las categorías valen igual (el número honesto para el README); `weighted avg` = pesan las grandes.
+  - Hallazgos: General Inquiry precision 1.00 pero recall 0.02 (encontró 1 de 47); todas las categorías pequeñas con recall muy bajo. Technical Support recall 0.73 / precision 0.45 → el modelo la usa "por si acaso". Billing es la mejor (F1 0.76: vocabulario propio como *invoice*, *refund*). Customer Service, IT Support y Product Support entre las peores → hipótesis: se confunden entre sí (falta comprobarlo con la matriz de confusión).
+  - Experimento **`class_weight="balanced"`** (los errores en categorías pequeñas cuentan más). Predije: recall de GI sube ✅, precision de GI baja ✅, accuracy sube ❌. Resultado: accuracy 0.47 → **0.43**, macro F1 0.37 → **0.42**, ninguna categoría con F1 < 0.25 (antes 4). La accuracy bajó porque Technical Support perdió ~350 aciertos (recall 0.73 → 0.36) y la accuracy cuenta tickets, no categorías.
+  - **Trade-off precision/recall:** si el modelo se "atreve" más con una categoría, encuentra más pero se equivoca más al usarla.
+  - **Decisión: me quedo con `class_weight="balanced"`** (mejor macro F1; más justo con categorías como Human Resources). Para el README: "subí el macro F1 de 0.37 a 0.42 a cambio de 4 puntos de accuracy, y por qué".
+
 ## Próximo paso
-**Fase 2, sesión 8: entrenar el primer modelo (Regresión Logística) para la categoría y ver su primera nota.**
-- Para qué: el primer modelo real del proyecto, que reemplaza a las reglas a mano de la Fase 1.
-- En `modelo/03_entrenar.py`: `from sklearn.linear_model import LogisticRegression` → `modelo.fit(X_train_tfidf, y_train)` → `modelo.predict(X_test_tfidf)`.
-- Primera métrica: **accuracy** (`accuracy_score`). Luego `classification_report` para ver el **F1 por clase** (importante por el desbalance: ¿cómo le va a General Inquiry?).
-- Predecir antes de ejecutar: ¿qué accuracy esperas? ¿Qué categoría saldrá peor?
+**Fase 2, sesión 9: matriz de confusión — ¿quién se confunde con quién?**
+- Para qué: comprobar la hipótesis de que Technical / Product / IT Support y Customer Service se confunden entre sí, antes de intentar mejorar el modelo.
+- `from sklearn.metrics import confusion_matrix` (y verla como tabla de pandas con los nombres de las categorías: `modelo.classes_`).
+- Leerla: filas = respuesta correcta, columnas = lo que dijo el modelo, diagonal = aciertos.
+- Después: ideas para mejorar (ajustes de TF-IDF como `stop_words="english"` o `ngram_range=(1, 2)`, probar SVM con `LinearSVC`), siempre comparando el **macro F1** contra 0.42.
+- Más adelante: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
+- Predecir antes de ejecutar: ¿qué par de categorías se confunde más?
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
