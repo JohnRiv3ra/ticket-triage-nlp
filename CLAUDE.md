@@ -200,12 +200,25 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Me costó entender el código al principio → se explicó línea por línea con la analogía antes de seguir. Lo que dice la ejecución vale más que una tabla copiada a mano (el tutor copió mal un número).
   - Error: creé el archivo en `ejercicios/ejercicios/` (otra vez carpeta anidada) → `Move-Item` + `Remove-Item`. Truco: hacer clic en la carpeta correcta antes de crear el archivo.
 
+- **2026-11-02 — Fase 2, sesión 7 (TF-IDF real + entrenamiento/prueba).** Commit y push hechos (`f5a7a4a`). Archivo `modelo/03_entrenar.py`.
+  - TF-IDF con todos los tickets en inglés: `(16338, 5073)` → vocabulario de solo **5.073 palabras** (pocas para 16 mil textos; probablemente porque el dataset es sintético → dato para el README). La matriz es **dispersa** (guarda solo los no-ceros); no usar `toarray()` con datos reales (~83 millones de casillas).
+  - **`X`** = lo que el modelo lee (`df["texto"]`); **`y`** = lo que adivina (`df["queue"]` = categoría; `priority` vendrá después). `queue` ("cola") es como el dataset llama a la categoría.
+  - `train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)` → devuelve 4 cosas (desempacar en orden: `X_train, X_test, y_train, y_test`). `random_state` = azar repetible; `stratify=y` = misma proporción de categorías en ambos lados (clave por el desbalance).
+  - Resultado: `(13070,)` entrenamiento y `(3268,)` prueba. Predije 3.276: el razonamiento estaba bien, pero me equivoqué en la cuenta (16338 × 0.2 = 3267.6 → se redondea hacia arriba a 3.268). Una sola columna → `shape` de una dimensión.
+  - **Fuga de datos (data leakage):** hacer el `fit` con todos los tickets deja que el modelo "vea el examen" → métricas infladas **sin error**. Correcto: `fit_transform(X_train)` y solo `transform(X_test)` → `(13070, 4911)` y `(3268, 4911)`. Las 162 palabras que faltan solo aparecen en prueba. Mismas columnas en ambos lados (obligatorio). En la API también se usará solo `transform`.
+  - Errores:
+    - `FileNotFoundError` por escribir `data/tickets.csv` en vez de `tickets_en.csv`. Esta vez la ruta del error mostraba `.venv` → entorno activo ✔️.
+    - `NameError: name 'X' is not defined` → usé `X` y `y` sin crearlos antes.
+    - Escribí `y = df["texto"]` (copiando la línea de `X`) → la "respuesta" era la misma pregunta. Me confundió que la categoría se llame `queue` y no `categoria`.
+    - `print(matriz.shape)` quedó fuera del comentario `""" """` → `NameError`, porque `matriz` se creaba dentro del comentario.
+  - Idea: entrenar en **Google Colab** y traer el `.pkl` con `joblib` se puede (ojo: misma versión de scikit-learn). Para TF-IDF + LR no hace falta (entrena en segundos aquí); tiene sentido para **BETO/DistilBERT** (GPU) en la Fase 6. A los reclutadores les importa la reproducibilidad y el criterio para elegir la herramienta, no Colab por sí solo.
+
 ## Próximo paso
-**Fase 2, sesión 7: TF-IDF con los tickets reales y separar entrenamiento/prueba.**
-- Para qué: preparar los datos reales para entrenar el primer modelo.
-- Cargar `data/tickets_en.csv`, aplicar `TfidfVectorizer` a la columna `texto` y ver el `shape` real (¿cuántas palabras tiene el vocabulario?).
-- Separar en **entrenamiento** y **prueba** (`train_test_split`): el modelo estudia con unos tickets y se examina con otros que nunca vio. Importante: el `fit` del TF-IDF se hace **solo con entrenamiento** (lo visto en el experimento: el `fit` depende de todos los textos).
-- Archivo sugerido: `modelo/03_entrenar.py`.
+**Fase 2, sesión 8: entrenar el primer modelo (Regresión Logística) para la categoría y ver su primera nota.**
+- Para qué: el primer modelo real del proyecto, que reemplaza a las reglas a mano de la Fase 1.
+- En `modelo/03_entrenar.py`: `from sklearn.linear_model import LogisticRegression` → `modelo.fit(X_train_tfidf, y_train)` → `modelo.predict(X_test_tfidf)`.
+- Primera métrica: **accuracy** (`accuracy_score`). Luego `classification_report` para ver el **F1 por clase** (importante por el desbalance: ¿cómo le va a General Inquiry?).
+- Predecir antes de ejecutar: ¿qué accuracy esperas? ¿Qué categoría saldrá peor?
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
