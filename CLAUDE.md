@@ -44,6 +44,11 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 - Condición obligatoria: **mismas etiquetas** en ambos datasets → hacer un **mapeo** (diccionario) de etiquetas.
 - Resultado para el README: "probé un modelo mezclado contra dos modelos separados y estos fueron los resultados".
 
+### 📌 Pendiente para la Fase 6 (pulido) — recordármelo
+- **Sacar `CLAUDE.md` del repo público** (decidido 2026-11-02 dejarlo para el final): agregar `CLAUDE.md` al `.gitignore` → `git rm --cached CLAUDE.md` (**con** `--cached`, para no borrarlo del disco) → commit y push. Las versiones viejas quedan en el historial (aceptado).
+- Escribir en el README una sección corta **"Qué aprendí construyendo este proyecto"** con lo mejor de la bitácora (versión pulida para reclutadores).
+- Mencionar en el README que el dataset es sintético, su licencia CC-BY-NC-4.0 y cómo descargarlo.
+
 ## Hoja de ruta (aprox. 5 meses a 1 h/día)
 | Fase | Duración | Contenido | Estado |
 |---|---|---|---|
@@ -184,13 +189,24 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **Gran lección: el orden de la receta importa** → normalizar → quitar duplicados → filtrar → unir con `fillna` → limpiar texto. Medir (`value_counts`, `shape`, `.sum()`) y mirar (tabla, corchetes) en cada paso.
   - Pendiente: `modelo/02_filtrar.py` no quita duplicados (el dataset real tiene 0, pero se podría agregar por buena práctica).
 
+- **2026-11-02 — Fase 2, sesión 6 (TF-IDF con textos de juguete).** Commit y push hechos (`c3ea114`). Archivo `ejercicios/09_tfidf.py`.
+  - `pip install scikit-learn` → **1.9.1** (trae `scipy` y `joblib`; `joblib` servirá para guardar el modelo `.pkl`) + `pip freeze > requirements.txt`. Se instala como `scikit-learn`, se importa como `sklearn`.
+  - Para qué: el modelo es una calculadora y no sabe leer → TF-IDF traduce cada texto a una **fila de números**. Analogía: hoja de cuadros (columnas = palabras del vocabulario, filas = tickets, número = importancia; 0 = no aparece).
+  - **TF** = cuántas veces está la palabra en el ticket; **IDF** = qué tan rara es en todos los tickets (las comunes pesan poco).
+  - Código: `from sklearn.feature_extraction.text import TfidfVectorizer`; `vectorizador = TfidfVectorizer()` (traductor vacío); `matriz = vectorizador.fit_transform(textos)` (**fit** = aprende el vocabulario, **transform** = llena los números); `get_feature_names_out()` (vocabulario); `matriz.shape` → `(4, 11)`. Para verla: `pd.DataFrame(matriz.toarray(), columns=...).round(2)`.
+  - Vocabulario: en **minúsculas**, orden **alfabético**, sin repetidas, e **ignora palabras de 1 letra** (`"I"`).
+  - Los números de una fila son relativos entre sí ("pastel" del mismo tamaño por ticket): `password` vale 0.53 en un ticket y 0.49 en otro.
+  - Experimento: agregué `"The printer is broken again"` → en la fila 1 `broken` bajó (0.59 → 0.54, ahora está en 2 tickets) y `my` **subió** (0.47 → 0.54) sin cambiar su ticket → el peso depende de **todos** los tickets juntos (por eso es `fit`). `shape` → `(5, 12)` por `again`.
+  - Me costó entender el código al principio → se explicó línea por línea con la analogía antes de seguir. Lo que dice la ejecución vale más que una tabla copiada a mano (el tutor copió mal un número).
+  - Error: creé el archivo en `ejercicios/ejercicios/` (otra vez carpeta anidada) → `Move-Item` + `Remove-Item`. Truco: hacer clic en la carpeta correcta antes de crear el archivo.
+
 ## Próximo paso
-**Fase 2, sesión 6: TF-IDF (convertir palabras en números).**
-- Para qué: el modelo solo entiende números; TF-IDF convierte cada ticket en una fila de números según qué palabras tiene y qué tan importantes son (las que aparecen en todos, como "Dear Customer Support", pesan poco).
-- Instalar scikit-learn: `pip install scikit-learn` → **luego `pip freeze > requirements.txt`**.
-- Primero con pocos textos hechos a mano (como en la sesión 5) para **ver** la tabla de números; después con `tickets_en.csv`.
-- Conceptos: `TfidfVectorizer`, `.fit_transform()`, vocabulario (`get_feature_names_out()`), por qué TF-IDF ya convierte a minúsculas.
-- Recordar: `(.venv)` activo.
+**Fase 2, sesión 7: TF-IDF con los tickets reales y separar entrenamiento/prueba.**
+- Para qué: preparar los datos reales para entrenar el primer modelo.
+- Cargar `data/tickets_en.csv`, aplicar `TfidfVectorizer` a la columna `texto` y ver el `shape` real (¿cuántas palabras tiene el vocabulario?).
+- Separar en **entrenamiento** y **prueba** (`train_test_split`): el modelo estudia con unos tickets y se examina con otros que nunca vio. Importante: el `fit` del TF-IDF se hace **solo con entrenamiento** (lo visto en el experimento: el `fit` depende de todos los textos).
+- Archivo sugerido: `modelo/03_entrenar.py`.
+- Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
