@@ -1,9 +1,13 @@
 import pandas as pd 
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
 
 df = pd.read_csv("data/tickets_en.csv")
 X = df["texto"]
@@ -25,3 +29,6 @@ predicciones = modelo.predict(X_test_tfidf)
 accuracy = accuracy_score(y_test, predicciones)
 print(f"Accuracy: {accuracy}")
 print(classification_report(y_test, predicciones))
+matriz = confusion_matrix(y_test, predicciones, labels=modelo.classes_)
+tabla = pd.DataFrame(matriz, index=modelo.classes_, columns=modelo.classes_)
+print(tabla)
