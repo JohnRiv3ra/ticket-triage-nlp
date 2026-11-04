@@ -225,14 +225,27 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **Trade-off precision/recall:** si el modelo se "atreve" más con una categoría, encuentra más pero se equivoca más al usarla.
   - **Decisión: me quedo con `class_weight="balanced"`** (mejor macro F1; más justo con categorías como Human Resources). Para el README: "subí el macro F1 de 0.37 a 0.42 a cambio de 4 puntos de accuracy, y por qué".
 
+- **2026-11-04 — Fase 2, sesión 9 (matriz de confusión).** Commit y push hechos (`7a49af2`). En `modelo/03_entrenar.py`.
+  - Para qué: el `classification_report` da la **nota** de cada categoría; la matriz dice **con quién** se confunde.
+  - Código: `confusion_matrix(y_test, predicciones, labels=modelo.classes_)` (primero las correctas, como en `accuracy_score`) → `pd.DataFrame(matriz, index=modelo.classes_, columns=modelo.classes_)` para ponerle nombres. `modelo.classes_` = las categorías que aprendió, en orden alfabético.
+  - Leerla: **filas = lo que era de verdad**, **columnas = lo que dijo el modelo**, **diagonal = aciertos**, fuera de la diagonal = errores.
+  - `[10 rows x 10 columns]` no era un error: pandas escondió columnas. Arreglo arriba del script: `pd.set_option("display.max_columns", None)` y `pd.set_option("display.width", None)` (configuración → antes de cualquier `print`).
+  - La tabla "cuadra": la suma de la fila Billing = 319 = su `support`. **Recall = diagonal ÷ total de la fila** (232/319 = 0.73); **precision = diagonal ÷ total de la columna** (232/297 = 0.78) → el `classification_report` sale de esta tabla.
+  - Predicciones: fila más limpia **Billing** ✅ (limpia en fila y en columna; Service Outages tiene más recall pero su columna recibe muchos ajenos). Par más confundido **General Inquiry ↔ Human Resources** ❌ (3 y 0) → dos categorías pequeñas no tienen por qué parecerse; importa si usan las **mismas palabras**.
+  - **Hipótesis de la sesión 8 confirmada:** Technical, IT, Product Support y Customer Service forman un "grupo de confusión". Mayores errores: Technical → IT **156**, Technical → Product **125**, Product → Technical **119**, Technical → Customer Service **91**.
+  - Technical ↔ Product es casi simétrico (125 / 119) → vocabulario casi igual; como el dataset es sintético, las etiquetas podrían ser ambiguas incluso para un humano (límite del modelo; dato para el README). Technical → IT (156) vs. IT → Technical (65) no es simétrico, en parte porque Technical es mucho más grande.
+  - Fue un día difícil (se cayeron dos oportunidades de trabajo) y me costó concentrarme; hice la sesión por disciplina y dejé el mini-ejercicio para la próxima. Voy a releer esta sesión con calma.
+
 ## Próximo paso
-**Fase 2, sesión 9: matriz de confusión — ¿quién se confunde con quién?**
-- Para qué: comprobar la hipótesis de que Technical / Product / IT Support y Customer Service se confunden entre sí, antes de intentar mejorar el modelo.
-- `from sklearn.metrics import confusion_matrix` (y verla como tabla de pandas con los nombres de las categorías: `modelo.classes_`).
-- Leerla: filas = respuesta correcta, columnas = lo que dijo el modelo, diagonal = aciertos.
-- Después: ideas para mejorar (ajustes de TF-IDF como `stop_words="english"` o `ngram_range=(1, 2)`, probar SVM con `LinearSVC`), siempre comparando el **macro F1** contra 0.42.
+**Fase 2, sesión 10: repaso de la matriz de confusión + primera mejora del modelo.**
+- Empezar con un **repaso corto** de la sesión 9 (cómo leer filas/columnas/diagonal) y el mini-ejercicio pendiente:
+  1. En la **columna** `General Inquiry`, ¿de qué categoría vienen más tickets que el modelo llamó así por error?
+  2. ¿Por qué la precision de General Inquiry es tan baja (0.16)? (Pista: qué hace `class_weight="balanced"` con las categorías pequeñas.)
+- Después, sabiendo que el problema es el grupo Technical/IT/Product/Customer Service: probar mejoras de una en una, comparando el **macro F1** contra 0.42 (y mirando si bajan esos cruces de la matriz):
+  - TF-IDF con `ngram_range=(1, 2)` (pares de palabras como `"password reset"`) y/o `stop_words="english"`.
+  - SVM con `LinearSVC`.
 - Más adelante: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
-- Predecir antes de ejecutar: ¿qué par de categorías se confunde más?
+- Predecir antes de ejecutar.
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
