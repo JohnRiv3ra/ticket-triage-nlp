@@ -236,16 +236,28 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Technical ↔ Product es casi simétrico (125 / 119) → vocabulario casi igual; como el dataset es sintético, las etiquetas podrían ser ambiguas incluso para un humano (límite del modelo; dato para el README). Technical → IT (156) vs. IT → Technical (65) no es simétrico, en parte porque Technical es mucho más grande.
   - Fue un día difícil (se cayeron dos oportunidades de trabajo) y me costó concentrarme; hice la sesión por disciplina y dejé el mini-ejercicio para la próxima. Voy a releer esta sesión con calma.
 
+- **2026-11-04 — Fase 2, sesión 10 (repaso de la matriz + bigramas).** Commit y push hechos (`a201c0c`). En `modelo/03_entrenar.py`.
+  - Volví con ánimo. Pregunté qué puestos buscar: lo más alcanzable hoy es **Soporte / Help Desk** (conozco el problema que resuelve mi proyecto) y **Data Analyst junior** (en paralelo); **QA** como puerta a desarrollo; **Backend junior** después de la Fase 3; **trainee de ML/IA** como meta de mediano plazo. No hace falta terminar el proyecto para postular. Pendiente: decirle al tutor mi país y mi trabajo actual para afinar las recomendaciones y el LinkedIn.
+  - Mini-ejercicio de la columna `General Inquiry`: la mayoría de los errores vienen de **Technical Support** (39) ✅, porque es la más grande y tiene más tickets para "regalar". Calculé la **precision a mano**: 28 ÷ 170 = **0.16** ✅ (igual al reporte).
+  - Me confundí: dije que GI se predice mucho "porque tiene más tickets", pero es la que tiene **menos**. La causa real es **`class_weight="balanced"`**: cada ticket de GI pesa ~7 y uno de Technical ~0.35 → fallar un GI "duele" ~20 veces más → el modelo **se atreve** a decir GI cuando duda (recall 0.02 → 0.60, precision 0.16).
+  - **Bigramas:** `TfidfVectorizer(ngram_range=(1, 2))` = palabras sueltas (unigramas) **más pares** de palabras (bigramas), como `"password reset"`. Un par dice más que cada palabra por separado.
+  - Predije que el vocabulario sería "el doble, ~10 mil" ❌ → salió **4.911 → 81.602** (×16): cada palabra va seguida de muchas palabras distintas, así que los pares crecen multiplicando, no sumando (~76.700 bigramas).
+  - No predije la dirección del macro F1 ("no me acuerdo") → lección: aunque no recuerde el número, **apostar por una dirección** (sube / baja / igual).
+  - Resultado: accuracy 0.43 → **0.53**, **macro F1 0.42 → 0.55**. **Sin trade-off** (subieron ambas). Las 4 del grupo de confusión mejoraron (Technical 0.44 → 0.56, IT 0.36 → 0.46, Product 0.36 → 0.48, Customer Service 0.38 → 0.46), pero siguen entre las más bajas. GI: precision 0.16 → 0.48; HR: F1 0.32 → 0.59.
+  - Matriz, fila Technical: predije que bajarían los tres cruces ✅ → IT 156 → 127, Product 125 → 119, Customer Service 91 → 86; aciertos de Technical **341 → 491** (+150). Gran parte vino de la columna GI (39 → 9): los bigramas le quitaron la costumbre de decir GI "por si acaso".
+  - **Technical ↔ Product casi no mejoró** (125 → 119) y Product → Technical **subió** (119 → 132): sigue siendo el par más confundido → refuerza la idea de que en este dataset (sintético) comparten casi el mismo vocabulario; el límite podría estar **en los datos**, no en el modelo.
+  - Lección: una métrica general (macro F1) puede esconder un problema concreto que solo se ve en la matriz.
+  - Frase para el README: "La matriz de confusión mostró que 4 categorías de soporte se confundían entre sí. Agregué bigramas (`ngram_range=(1, 2)`) para capturar frases como 'password reset', y el macro F1 subió de 0.42 a 0.55." → orden **diagnóstico → hipótesis → cambio → medición**.
+
 ## Próximo paso
-**Fase 2, sesión 10: repaso de la matriz de confusión + primera mejora del modelo.**
-- Empezar con un **repaso corto** de la sesión 9 (cómo leer filas/columnas/diagonal) y el mini-ejercicio pendiente:
-  1. En la **columna** `General Inquiry`, ¿de qué categoría vienen más tickets que el modelo llamó así por error?
-  2. ¿Por qué la precision de General Inquiry es tan baja (0.16)? (Pista: qué hace `class_weight="balanced"` con las categorías pequeñas.)
-- Después, sabiendo que el problema es el grupo Technical/IT/Product/Customer Service: probar mejoras de una en una, comparando el **macro F1** contra 0.42 (y mirando si bajan esos cruces de la matriz):
-  - TF-IDF con `ngram_range=(1, 2)` (pares de palabras como `"password reset"`) y/o `stop_words="english"`.
-  - SVM con `LinearSVC`.
-- Más adelante: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
-- Predecir antes de ejecutar.
+**Fase 2, sesión 11: seguir mejorando el modelo de categoría.**
+- Comparar siempre contra el **macro F1 actual: 0.55** (bigramas + `balanced`) y mirar en la matriz el par **Technical ↔ Product** (119 / 132).
+- Probar **un cambio a la vez** (si cambio dos, no sé cuál ayudó):
+  1. `stop_words="english"` en el `TfidfVectorizer` (quitar palabras como `the`, `is`, `my`). Ojo: podría **empeorar**, porque los bigramas como `"not working"` usan esas palabras → buena pregunta para predecir.
+  2. SVM con `LinearSVC` (`from sklearn.svm import LinearSVC`) en lugar de `LogisticRegression`.
+- Idea para más adelante: anotar los resultados de cada experimento en una tabla (para el README).
+- Después: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
+- Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
