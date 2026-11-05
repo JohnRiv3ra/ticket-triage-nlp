@@ -249,13 +249,29 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Lección: una métrica general (macro F1) puede esconder un problema concreto que solo se ve en la matriz.
   - Frase para el README: "La matriz de confusión mostró que 4 categorías de soporte se confundían entre sí. Agregué bigramas (`ngram_range=(1, 2)`) para capturar frases como 'password reset', y el macro F1 subió de 0.42 a 0.55." → orden **diagnóstico → hipótesis → cambio → medición**.
 
+- **2026-11-04 — Fase 2, sesión 11 (stop words).** Commit y push hechos (`4d56943`). En `modelo/03_entrenar.py`.
+  - Le dije al tutor que soy de **Durán, Ecuador** (junto a Guayaquil). Dónde buscar: LinkedIn, Multitrabajos, Computrabajo y **pasantías preprofesionales** de la universidad. Empresas de Guayaquil (bancos, retail, telecom, puertos, logística) tienen mesa de ayuda y datos; remoto depende del inglés. Como en Ecuador los tickets llegan **en español**, el **sistema bilingüe** gana valor para reclutadores locales. Pendiente: decirle mi trabajo actual y mi nivel de inglés.
+  - **Stop words** = palabras que aparecen en casi todo y no dicen de qué trata el ticket (`the`, `is`, `my`, `not`…). `TfidfVectorizer(ngram_range=(1, 2), stop_words="english")` las borra antes de armar el vocabulario (varias opciones separadas por **coma**). Regla del experimento: **un cambio a la vez**.
+  - Duda previa: podía empeorar, porque al borrar `not` desaparece el par `"not working"`, y la IDF ya le baja el peso a las palabras comunes.
+  - Predicciones: macro F1 sube ✅; columnas bajan ❌ → **subieron** de 81.602 a **93.859**. Al borrar las palabras vacías, las palabras con significado **quedan pegadas** y forman pares nuevos y más variados (`"my printer is broken"` → `"printer broken"`). Las palabras sueltas bajaron (~300), pero los pares nuevos fueron muchos más.
+  - Resultado: accuracy 0.53 → **0.56**, **macro F1 0.55 → 0.58**. General Inquiry F1 0.55 → 0.67; Billing 0.76 → 0.79.
+  - **Advertencia:** una mejora pequeña (+3) puede deberse en parte al sorteo de `train_test_split` (otro examen podría dar 0.57 o 0.59). Para medirlo mejor existe la **validación cruzada** (más adelante). +3 alcanza para quedarnos con el cambio.
+  - **Decisión: me quedo con `stop_words="english"`.**
+  - Resumen de experimentos (para el README):
+
+    | Versión | Accuracy | Macro F1 |
+    |---|---|---|
+    | LR básica | 0.47 | 0.37 |
+    | + `class_weight="balanced"` | 0.43 | 0.42 |
+    | + bigramas `ngram_range=(1, 2)` | 0.53 | 0.55 |
+    | + `stop_words="english"` | 0.56 | **0.58** |
+
 ## Próximo paso
-**Fase 2, sesión 11: seguir mejorando el modelo de categoría.**
-- Comparar siempre contra el **macro F1 actual: 0.55** (bigramas + `balanced`) y mirar en la matriz el par **Technical ↔ Product** (119 / 132).
-- Probar **un cambio a la vez** (si cambio dos, no sé cuál ayudó):
-  1. `stop_words="english"` en el `TfidfVectorizer` (quitar palabras como `the`, `is`, `my`). Ojo: podría **empeorar**, porque los bigramas como `"not working"` usan esas palabras → buena pregunta para predecir.
-  2. SVM con `LinearSVC` (`from sklearn.svm import LinearSVC`) en lugar de `LogisticRegression`.
-- Idea para más adelante: anotar los resultados de cada experimento en una tabla (para el README).
+**Fase 2, sesión 12: cambiar el "estudiante" — SVM con `LinearSVC`.**
+- Comparar siempre contra el **macro F1 actual: 0.58** (bigramas + stop words + `balanced`) y mirar en la matriz el par **Technical ↔ Product**.
+- Probar **un cambio a la vez**: `from sklearn.svm import LinearSVC` en lugar de `LogisticRegression` (mismo TF-IDF; mantener `class_weight="balanced"`).
+- Más adelante: **validación cruzada** para saber si las mejoras pequeñas son reales.
+- Seguir la tabla de experimentos de la sesión 11 (para el README).
 - Después: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
 - Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
