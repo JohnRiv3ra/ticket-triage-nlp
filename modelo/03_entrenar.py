@@ -7,6 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
+from sklearn.svm import LinearSVC
 
 
 df = pd.read_csv("data/tickets_en.csv")
@@ -23,7 +24,7 @@ X_test_tfidf = vectorizador.transform(X_test)
 print(X_train_tfidf.shape, X_test_tfidf.shape)
 
 
-modelo = LogisticRegression(max_iter=1000, class_weight="balanced")
+modelo = LinearSVC(class_weight="balanced")
 modelo.fit(X_train_tfidf, y_train)
 predicciones = modelo.predict(X_test_tfidf) 
 accuracy = accuracy_score(y_test, predicciones)
