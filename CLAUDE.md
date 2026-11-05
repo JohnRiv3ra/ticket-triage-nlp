@@ -266,13 +266,60 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
     | + bigramas `ngram_range=(1, 2)` | 0.53 | 0.55 |
     | + `stop_words="english"` | 0.56 | **0.58** |
 
+- **2026-11-05 — Fase 2, sesión 12 (SVM con `LinearSVC`).** Commit y push hechos (`d9e47d9`). En `modelo/03_entrenar.py`.
+  - Revisión del proyecto: todo commiteado y sincronizado; `data/` y `.venv` ignorados; sin fuga de datos; `06_prueba` ya no está en el repo (pendiente resuelto). Para la Fase 6: mover `tickets.json`, `tickets.txt` y `tickets_clasificados.json` de la raíz a `ejercicios/`, y completar el README.
+  - Hasta ahora cambiaba el **traductor** (TF-IDF); hoy cambié el **estudiante**. **SVM** (máquina de vectores de soporte) dibuja **fronteras** entre categorías buscando la "calle" más ancha posible; la LR calcula **probabilidades**. El SVM lineal funciona muy bien con texto y muchas columnas.
+  - `from sklearn.svm import LinearSVC` → `modelo = LinearSVC(class_weight="balanced")`.
+  - No escribí predicciones. Las columnas no cambian (93.859) porque no toqué el traductor.
+  - Resultado: accuracy 0.56 → **0.72**, macro F1 0.58 → **0.73**; ninguna categoría bajo 0.66. Matriz: Technical → IT 127 → **60**, Technical → Product 119 → **80**, Product → Technical 132 → **102**; aciertos de Technical 491 → **700**. Product ↔ Technical sigue siendo el par más confundido.
+  - Un salto tan grande → **desconfiar y revisar**: mismo examen (`random_state=42`), mismas columnas, `fit` solo en train → comparación limpia.
+
+- **2026-11-05 — Fase 2, sesión 13 (la perilla `C` y la prueba justa).** Commit y push hechos (`875ff5c`).
+  - **`C`** = cuánto detalle memoriza el estudiante. Muy baja → solo ideas generales (**subajuste**, *underfitting*). Muy alta → memoriza hasta las casualidades y falla con tickets nuevos (**sobreajuste**, *overfitting*). No hay un valor universal: se prueba. `C=1` no significa lo mismo en LR y en SVM.
+  - Comenté la línea del SVM con `#` (`Ctrl + }`) para poder volver a ella, y probé `LogisticRegression(max_iter=1000, class_weight="balanced", C=10)`.
+  - Predicciones: sube ✅ (**0.58 → 0.72**, +14 solo por la perilla); "pasa al SVM" ❌ (0.72 vs. 0.73).
+  - Conclusión: casi toda la ventaja del SVM venía de la perilla mal puesta en la LR. **1 punto = empate técnico** (puede ser el sorteo del examen).
+  - **Hiperparámetro** = ajuste que yo elijo antes de entrenar y que el modelo no aprende (`C`, `ngram_range`, `stop_words`, `class_weight`). Puede importar tanto como el algoritmo → comparar modelos con valores por defecto **no es justo**.
+  - **Decisión: Regresión Logística con `C=10`**, porque da **probabilidades** ("Billing, 85 % seguro") → en el panel, los tickets dudosos pueden ir a **revisión humana**.
+
+- **2026-11-05 — Fase 2, sesión 14 (probar el modelo con tickets nuevos).** Commit y push hechos (`105b675`).
+  - Es lo que hará la API: `nuevo = ["texto"]` (siempre una **lista**, aunque sea un ticket) → `vectorizador.transform(nuevo)` (solo `transform`, **nunca `fit`**) → `modelo.predict(...)`.
+  - `modelo.predict_proba(...)` → una probabilidad por categoría (suman 1). `pd.DataFrame(probabilidades, columns=modelo.classes_).T.round(2)`: **`.T` voltea la tabla** (filas ↔ columnas); el `0` de arriba es el número del ticket.
+  - Ticket corto *"My invoice shows a double charge and I need a refund"*: predije IT Support al 90 % ❌ → **Billing con 44 %**. No es tan bajo: el azar daría 10 % y el segundo puesto sacó 15 %.
+  - Con dos tickets en la lista (separados por **coma**; si falta la coma, Python une los textos sin error):
+    - Billing largo, estilo dataset (*"Dear Customer Support Team, …"*): predije más de 44 % ✅ → **96 %**.
+    - Ambiguo (software que se cierra tras una actualización): predije Technical vs. Product ✅ a medias → **Technical 46 %**, **IT 22 %**, Product 16 % (*installing*, *restarted*, *reinstalled* suenan a IT; coincide con el cruce Technical → IT de la matriz).
+  - **Cambio de distribución** (*distribution shift*): el modelo aprendió el **estilo** del dataset; tickets reales cortos y desordenados podrían rendir peor que en el examen → mencionarlo en el README y en entrevistas.
+  - Con un umbral "< 50 % → revisión humana", el ticket claro se clasifica solo y el ambiguo va a una persona. El **umbral** hay que elegirlo mirando datos.
+  - Frases para el README: "LinearSVC parecía 15 puntos mejor, pero al ajustar `C` de la LR la diferencia bajó a 1 punto: comparar modelos con valores por defecto puede engañar." / "96 % de confianza en un ticket claro y 46 % en uno ambiguo → los dudosos van a revisión humana."
+  - Tabla de experimentos actualizada:
+
+    | Versión | Accuracy | Macro F1 |
+    |---|---|---|
+    | LR básica | 0.47 | 0.37 |
+    | + `class_weight="balanced"` | 0.43 | 0.42 |
+    | + bigramas `ngram_range=(1, 2)` | 0.53 | 0.55 |
+    | + `stop_words="english"` | 0.56 | 0.58 |
+    | LinearSVC (`C=1`) | 0.72 | 0.73 |
+    | **LR con `C=10` (elegido)** | **0.70** | **0.72** |
+
+- **2026-11-05 — Fase 2, sesión 15 (modelo de prioridad).** Commit y push hechos (`15109a3`). Archivo `modelo/04_prioridad.py`.
+  - Copié `03_entrenar.py` y cambié solo `y = df["priority"]` (el nombre de la **columna** va en inglés, exacto como en el CSV; el nombre del **archivo** lo elijo yo). Copiar todo para cambiar una línea se siente mal → es el problema que resuelve la receta `entrenar(...)`.
+  - Línea base con `y.value_counts()`: medium 6.618 (**40 %**), high 6.346 (39 %), low 3.374 (21 %).
+  - Resultado (LR `C=10`, bigramas, stop words, `balanced`): accuracy **0.73**, **macro F1 0.72**. high F1 0.77, medium 0.74, **low 0.67** (la más débil: tiene la mitad de tickets, como General Inquiry).
+  - Predicción "macro F1 menor que la categoría porque son 3 opciones" ❌ → quedó **igual**. Con menos opciones adivinar es **más fácil** (azar: 33 % vs. 10 %). Mejora sobre la línea base: categoría 29 % → 70 % (**+41**), prioridad 40 % → 73 % (**+33**). Lección: **no comparar métricas de problemas distintos**; comparar cada una contra **su propia línea base**.
+  - Predicción "se confunden todas menos high ↔ low" ✅. Matriz: high ↔ medium **212 / 220** (la mayor), medium ↔ low 158 / 119, high ↔ low **77 / 83** (la menor). `medium` se confunde con sus dos vecinos.
+  - Columnas **94.377** (no 93.859): `stratify=y` ahora usa la prioridad → el sorteo reparte distinto → otro vocabulario de entrenamiento.
+  - La prioridad salió casi tan bien como la categoría, contra lo esperado: en este dataset (sintético) está muy ligada a la categoría (Service Outages → 70 % high). En una empresa real suele ser más difícil → dato honesto para el README.
+  - `C=10` se eligió para la categoría; no necesariamente es el mejor para la prioridad (probarlo más adelante).
+  - Ya tengo **los dos modelos** del sistema.
+
 ## Próximo paso
-**Fase 2, sesión 12: cambiar el "estudiante" — SVM con `LinearSVC`.**
-- Comparar siempre contra el **macro F1 actual: 0.58** (bigramas + stop words + `balanced`) y mirar en la matriz el par **Technical ↔ Product**.
-- Probar **un cambio a la vez**: `from sklearn.svm import LinearSVC` en lugar de `LogisticRegression` (mismo TF-IDF; mantener `class_weight="balanced"`).
-- Más adelante: **validación cruzada** para saber si las mejoras pequeñas son reales.
-- Seguir la tabla de experimentos de la sesión 11 (para el README).
-- Después: el mismo proceso para la **prioridad** (`y = df["priority"]`), y convertir el script en la receta reutilizable `entrenar(ruta_csv)`.
+**Fase 2, sesión 16: la receta reutilizable `entrenar(...)` + guardar los modelos `.pkl`.**
+- Para qué: `03_entrenar.py` y `04_prioridad.py` repiten casi todo el código → una **función** con parámetros (p. ej. `entrenar(ruta_csv, columna_y)`) evita copiar y pegar (como `asignar_prioridad` en `clasificador.py`, sesión 7).
+- Guardar el **vectorizador y los modelos** con `joblib.dump(...)` en `models/` (carpeta reservada para los `.pkl`), y probar cargarlos con `joblib.load(...)` en un script aparte (la "prueba de fuego", como con `tickets.json` en la sesión 6). Es lo que hará la API en la Fase 3.
+- Decidir si los `.pkl` se suben al repo o van al `.gitignore` (pueden pesar varios MB).
+- Más adelante: **validación cruzada** (¿las mejoras pequeñas son reales?), buscar el mejor `C` de forma ordenada (también para la prioridad) y elegir el **umbral de confianza** para la revisión humana.
 - Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
