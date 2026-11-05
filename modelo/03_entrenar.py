@@ -24,7 +24,8 @@ X_test_tfidf = vectorizador.transform(X_test)
 print(X_train_tfidf.shape, X_test_tfidf.shape)
 
 
-modelo = LinearSVC(class_weight="balanced")
+#modelo = LinearSVC(class_weight="balanced")
+modelo = LogisticRegression(max_iter=1000, class_weight="balanced", C=10)
 modelo.fit(X_train_tfidf, y_train)
 predicciones = modelo.predict(X_test_tfidf) 
 accuracy = accuracy_score(y_test, predicciones)
