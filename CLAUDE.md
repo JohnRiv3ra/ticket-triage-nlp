@@ -314,12 +314,25 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - `C=10` se eligió para la categoría; no necesariamente es el mejor para la prioridad (probarlo más adelante).
   - Ya tengo **los dos modelos** del sistema.
 
+- **2026-11-05 — Fase 2, sesión 16 (receta `entrenar()` + guardar modelos `.pkl`).** Commit y push hechos (`51b3c89`). Archivos `modelo/05_receta.py` y `modelo/06_cargar.py`.
+  - Escribí `def entrenar(ruta_csv, columna_y)`: lo que cambia entre modelos es **parámetro** (`y = df[columna_y]`, **sin comillas**: es una variable); lo fijo (sorteo, TF-IDF, LR `C=10`) va dentro; `return vectorizador, modelo` entrega la pareja entrenada. Dos scripts casi iguales → **dos líneas** de llamada (`_cat` y `_pri`).
+  - Me ayudó el tutor con la segunda mitad de la función y la explicación línea por línea. Al principio llamé al vectorizador `fit_transformer` → engaña (`fit_transform` es una **acción**, no el traductor) y habría dado `NameError` en el `return`.
+  - Predije "no saldrá igual, estoy seguro" ❌ → **idéntico** (categoría 0.70 / 0.72, prioridad 0.73 / 0.72): mismos datos, mismo `random_state=42`, mismas perillas. **Refactorizar** = cambiar la organización del código sin cambiar lo que hace; que den los mismos números es la prueba. La seguridad no es evidencia.
+  - **Cada modelo va con su propio vectorizador** (93.859 vs. 94.377 columnas, y la columna N es otra palabra en cada uno). Mezclarlos da `ValueError` si cambia el número de columnas, o respuestas basura **sin error** si coincide. Por eso guardé cada pareja junta: `joblib.dump((vectorizador_cat, modelo_cat), "models/modelo_categoria.pkl")` (paréntesis dobles = tupla). `.pkl` = "frasco" (*pickle*).
+  - `FileNotFoundError` al guardar: `open` crea archivos pero **no carpetas**; había hecho `mkdir models` con la terminal dentro de `ejercicios/`. Arreglo: `cd ..` + `Move-Item ejercicios\models models`. Lección: **mirar la ruta del prompt** antes de crear carpetas; las rutas se cuentan desde la raíz.
+  - Tamaños: predije MB ✅ → categoría **10,4 MB**, prioridad **5,2 MB**. El modelo guarda un número por palabra **y por clase**: 10 × 93.859 vs. 3 × 94.377 → la diferencia (~656 mil números × 8 bytes ≈ 5,2 MB) cuadra.
+  - **Prueba de fuego:** `06_cargar.py` no lee el CSV ni entrena; `joblib.load` → `transform` → `predict`. *"My invoice shows a double charge…"* → **Billing / high**. Así funcionará la API.
+  - **¿Por qué nunca `fit` con tickets nuevos?** `fit` tiraría el "diccionario" de 13 mil tickets y haría uno con un solo ticket (~10 columnas) → error o basura. `fit` se hace una vez, al entrenar; después el vectorizador queda congelado en el `.pkl`. Las palabras desconocidas simplemente se ignoran.
+  - Decisión: **`models/` al `.gitignore`** (los `.pkl` son reproducibles con la receta, y git guardaría ~15 MB por cada reentrenamiento para siempre). Para el despliegue (Fase 6) se decidirá cómo llevar el modelo al servidor.
+  - Pendiente: comprobar con `predict_proba(...).max()` que la confianza del ticket de Billing sigue siendo 0.44.
+
 ## Próximo paso
-**Fase 2, sesión 16: la receta reutilizable `entrenar(...)` + guardar los modelos `.pkl`.**
-- Para qué: `03_entrenar.py` y `04_prioridad.py` repiten casi todo el código → una **función** con parámetros (p. ej. `entrenar(ruta_csv, columna_y)`) evita copiar y pegar (como `asignar_prioridad` en `clasificador.py`, sesión 7).
-- Guardar el **vectorizador y los modelos** con `joblib.dump(...)` en `models/` (carpeta reservada para los `.pkl`), y probar cargarlos con `joblib.load(...)` en un script aparte (la "prueba de fuego", como con `tickets.json` en la sesión 6). Es lo que hará la API en la Fase 3.
-- Decidir si los `.pkl` se suben al repo o van al `.gitignore` (pueden pesar varios MB).
-- Más adelante: **validación cruzada** (¿las mejoras pequeñas son reales?), buscar el mejor `C` de forma ordenada (también para la prioridad) y elegir el **umbral de confianza** para la revisión humana.
+**Fase 2, sesión 17: validación cruzada + buscar el mejor `C` de forma ordenada.**
+- Para qué: las mejoras pequeñas (p. ej. +3 de stop words, o el 0.72 vs. 0.73 de LR vs. SVM) podrían deberse al sorteo del examen. La **validación cruzada** repite el examen con varios sorteos y da un promedio más confiable.
+- Buscar el mejor `C` probando varios valores en orden (no a mano uno por uno), **también para la prioridad** (`C=10` se eligió para la categoría).
+- Si cambia el mejor `C`, actualizar la receta `entrenar()` y volver a guardar los `.pkl`.
+- Pendiente rápido: la línea de `predict_proba(...).max()` en `06_cargar.py` (¿0.44?).
+- Después: elegir el **umbral de confianza** para la revisión humana → cerrar la Fase 2 y empezar la **Fase 3 (FastAPI)**.
 - Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
