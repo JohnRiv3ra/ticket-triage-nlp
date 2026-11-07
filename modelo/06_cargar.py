@@ -9,3 +9,4 @@ nuevo_tfidf_pri = vectorizador_pri.transform(nuevo)
 
 print("Categoría:", modelo_cat.predict(nuevo_tfidf_cat))
 print("Prioridad:", modelo_pri.predict(nuevo_tfidf_pri))
+print("Confianza categoria:", modelo_cat.predict_proba(nuevo_tfidf_cat).max())
