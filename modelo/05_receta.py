@@ -17,7 +17,7 @@ def entrenar(ruta_csv, columna_y):
     vectorizador = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
     X_train_tfidf = vectorizador.fit_transform(x_train)
     X_test_tfidf = vectorizador.transform(x_test)
-    modelo = LogisticRegression(max_iter=1000, class_weight="balanced", C=10)
+    modelo = LogisticRegression(max_iter=1000, class_weight="balanced", C=100)
     modelo.fit(X_train_tfidf, y_train)
     predicciones = modelo.predict(X_test_tfidf)
     print(f"---Modelo para {columna_y}: ---")
