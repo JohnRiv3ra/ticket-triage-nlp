@@ -338,14 +338,37 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Creé **`glosario.md`** (privado, en `.gitignore`): un concepto por línea, para repasar antes de cada sesión.
   - Al tutor: ir más despacio, **una idea a la vez**, primero con una analogía cotidiana y sin jerga, antes de mostrar código.
 
+- **2026-11-06 — Fase 2, sesión 18 (buscar el mejor `C` con un `for`).** Mismo día que la 17; quise seguir para terminar la fase. En `modelo/07_validacion.py` y `modelo/05_receta.py`.
+  - `for c in [...]:` → pipeline con `C=c` → `cross_val_score` → promedio y `std`. Un `for` como el de la Fase 1, pero recorriendo valores de la perilla.
+  - Categoría: `C=0.1` **0.362** (subajuste), `C=1` 0.550, `C=10` 0.677, **`C=100` 0.697** 🏆, `C=1000` 0.687 (sobreajuste). Forma de **"montaña"**: sube cada vez menos, llega a la cima y baja.
+  - Prioridad: `C=1` 0.633, `C=10` 0.699, **`C=100` 0.703** 🏆, `C=1000` 0.687.
+  - Predicciones: categoría gana `C=10` ❌ (ganó 100); `C=1000` empate o sobreajuste ✅ (bajó); prioridad gana `C=100` ✅; confianza del ticket de Billing sube ✅.
+  - **Regla de empate:** diferencia ÷ `std` → 1 o menos = empate; 2 o más = ganador. `C=10` vs. `C=100` en categoría: 2 puntos ÷ 0.6 ≈ 3 → ganador (yo dije empate ❌). En prioridad: 0.4 ÷ 0.2 = 2 → en el límite; elegí `C=100` en ambos para que la receta tenga una sola perilla.
+  - Me resultó muy confuso; acordamos repartir: yo ejecuto y pego, el tutor hace las cuentas de empate y las explica en una línea.
+  - **Decisión: `C=100` en la receta `entrenar()`** → `.pkl` reentrenados y sobrescritos.
+  - **Examen final** (`x_test`, nunca usado para elegir `C`): categoría macro F1 0.72 → **0.74** (accuracy 0.73); prioridad 0.72 → **0.73** (accuracy 0.74). La validación cruzada **anticipó** la mejora (+2 y casi nada) → elegir con 5 exámenes funcionó.
+  - `06_cargar.py`: el ticket de la factura sigue siendo Billing / high, pero la confianza subió **0.44 → 0.71**. Con `C` alta el modelo "habla más seguro"; más seguro no es lo mismo que más acertado → el **umbral se elige después de fijar `C`** (las probabilidades cambian con `C`).
+  - Tabla de experimentos actualizada (para el README):
+
+    | Versión | Accuracy | Macro F1 |
+    |---|---|---|
+    | LR básica | 0.47 | 0.37 |
+    | + `class_weight="balanced"` | 0.43 | 0.42 |
+    | + bigramas `ngram_range=(1, 2)` | 0.53 | 0.55 |
+    | + `stop_words="english"` | 0.56 | 0.58 |
+    | LinearSVC (`C=1`) | 0.72 | 0.73 |
+    | LR con `C=10` | 0.70 | 0.72 |
+    | **LR con `C=100` (elegido con validación cruzada)** | **0.73** | **0.74** |
+
+  - Frase para el README: "Elegí `C` con validación cruzada de 5 grupos (macro F1 0.677 ± 0.007 con `C=10` → 0.697 con `C=100`; `C=1000` empeoró por sobreajuste). El examen final confirmó la mejora: 0.72 → 0.74."
+
 ## Próximo paso
-**Fase 2, sesión 18: repaso corto + buscar el mejor `C` con un `for`.**
-- Empezar con un **repaso de 5 minutos** de la validación cruzada con el ejemplo de los penales (y leer `glosario.md`). Ir despacio, una idea a la vez.
-- Cambiar la etiqueta a `"Confianza categoría"` en `06_cargar.py` (si no se hizo).
-- En `07_validacion.py`: `for c in [0.1, 1, 10, 100]:` → pipeline con `C=c` → `cross_val_score` → imprimir promedio y `std`. Son 20 entrenamientos: avisar que tarda y **no presionar Ctrl+C**. Predecir antes qué `C` gana.
-- Hacer lo mismo **para la prioridad** (`C=10` se eligió para la categoría).
-- Si cambia el mejor `C` (y no es empate), actualizar la receta `entrenar()` y volver a guardar los `.pkl`.
-- Después: elegir el **umbral de confianza** para la revisión humana → cerrar la Fase 2 y empezar la **Fase 3 (FastAPI)**.
+**Fase 2, sesión 19 (última de la fase): elegir el umbral de confianza.**
+- Empezar con un repaso corto (penales + `glosario.md`). Ir despacio, una idea a la vez.
+- Pregunta: ¿desde qué confianza decide el modelo solo y debajo de cuál va a **revisión humana**? Mirarlo con datos del examen (`predict_proba` sobre `x_test`): cuántos tickets quedan debajo de cada umbral y qué tan bien acierta el modelo en los de arriba.
+- Hacerlo con los modelos de `C=100` (las probabilidades cambiaron).
+- Al terminar → **✅ Fase 2 completada** → empezar la **Fase 3 (FastAPI)**.
+- Predecir antes de ejecutar (aunque sea solo la dirección).
 - Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
