@@ -324,14 +324,27 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **Prueba de fuego:** `06_cargar.py` no lee el CSV ni entrena; `joblib.load` → `transform` → `predict`. *"My invoice shows a double charge…"* → **Billing / high**. Así funcionará la API.
   - **¿Por qué nunca `fit` con tickets nuevos?** `fit` tiraría el "diccionario" de 13 mil tickets y haría uno con un solo ticket (~10 columnas) → error o basura. `fit` se hace una vez, al entrenar; después el vectorizador queda congelado en el `.pkl`. Las palabras desconocidas simplemente se ignoran.
   - Decisión: **`models/` al `.gitignore`** (los `.pkl` son reproducibles con la receta, y git guardaría ~15 MB por cada reentrenamiento para siempre). Para el despliegue (Fase 6) se decidirá cómo llevar el modelo al servidor.
-  - Pendiente: comprobar con `predict_proba(...).max()` que la confianza del ticket de Billing sigue siendo 0.44.
+  - Pendiente: comprobar con `predict_proba(...).max()` que la confianza del ticket de Billing sigue siendo 0.44 → resuelto en la sesión 17.
+
+- **2026-11-06 — Fase 2, sesión 17 (validación cruzada).** Archivo `modelo/07_validacion.py`.
+  - Pendiente resuelto: `predict_proba(...).max()` en `06_cargar.py` → **0.442**, igual que en la sesión 14 ✅ (mismos datos, `random_state` y perillas → mismo modelo; `joblib` solo guarda y devuelve). Hay que cambiar la etiqueta `"Confianza"` por `"Confianza categoría"` (estaba debajo de `Prioridad` y confundía).
+  - **Validación cruzada** = 5 exámenes en vez de 1. El train se reparte en 5 grupos (*folds*); en cada ronda estudia con 4 y se examina con 1 → 5 notas → promedio + `std`.
+  - **`Pipeline`** (`make_pipeline(TfidfVectorizer(...), LogisticRegression(...))`) = traductor + estudiante en un solo objeto, para que el `fit` del TF-IDF se haga **dentro de cada ronda** (si no, hay fuga de datos). `cross_val_score(receta, x_train, y_train, cv=5, scoring="f1_macro", n_jobs=-1)`. Solo con `x_train`: `x_test` queda guardado como examen final.
+  - `KeyboardInterrupt` = no era un error: lo detuve con Ctrl+C porque tardaba (5 entrenamientos). Arreglo: `n_jobs=-1` (usa todos los núcleos) y un `print` de aviso antes, para que el programa cuente qué hace.
+  - Resultado (categoría, `C=10`): notas `[0.678 0.672 0.691 0.670 0.676]` → **promedio 0.677, std 0.007**.
+  - Predicciones: promedio mayor que 0.72 ❌ (salió menor: cada ronda estudia con ~10.456 tickets en vez de 13.070, y el 0.72 era un solo examen); notas separadas ❌ (están juntas → modelo estable).
+  - **Empate técnico:** una diferencia menor o parecida a la `std` puede ser suerte → el 0.72 vs. 0.73 de LR vs. SVM era empate. El +3 de las stop words es ~4 veces la `std` → probablemente real. Si hay empate, elegir el `C` más bajo.
+  - **Me costó mucho entenderlo** ("no entendí nadota") y se me olvidan conceptos. Lo que funcionó: dejar el código y explicarlo con **penales** (patear 10 penales 1 día vs. 5 días). Por mi cuenta dije que para comparar hay que tener **el mismo arquero** = mismo examen (`random_state=42`, mismos grupos) → buena observación.
+  - Creé **`glosario.md`** (privado, en `.gitignore`): un concepto por línea, para repasar antes de cada sesión.
+  - Al tutor: ir más despacio, **una idea a la vez**, primero con una analogía cotidiana y sin jerga, antes de mostrar código.
 
 ## Próximo paso
-**Fase 2, sesión 17: validación cruzada + buscar el mejor `C` de forma ordenada.**
-- Para qué: las mejoras pequeñas (p. ej. +3 de stop words, o el 0.72 vs. 0.73 de LR vs. SVM) podrían deberse al sorteo del examen. La **validación cruzada** repite el examen con varios sorteos y da un promedio más confiable.
-- Buscar el mejor `C` probando varios valores en orden (no a mano uno por uno), **también para la prioridad** (`C=10` se eligió para la categoría).
-- Si cambia el mejor `C`, actualizar la receta `entrenar()` y volver a guardar los `.pkl`.
-- Pendiente rápido: la línea de `predict_proba(...).max()` en `06_cargar.py` (¿0.44?).
+**Fase 2, sesión 18: repaso corto + buscar el mejor `C` con un `for`.**
+- Empezar con un **repaso de 5 minutos** de la validación cruzada con el ejemplo de los penales (y leer `glosario.md`). Ir despacio, una idea a la vez.
+- Cambiar la etiqueta a `"Confianza categoría"` en `06_cargar.py` (si no se hizo).
+- En `07_validacion.py`: `for c in [0.1, 1, 10, 100]:` → pipeline con `C=c` → `cross_val_score` → imprimir promedio y `std`. Son 20 entrenamientos: avisar que tarda y **no presionar Ctrl+C**. Predecir antes qué `C` gana.
+- Hacer lo mismo **para la prioridad** (`C=10` se eligió para la categoría).
+- Si cambia el mejor `C` (y no es empate), actualizar la receta `entrenar()` y volver a guardar los `.pkl`.
 - Después: elegir el **umbral de confianza** para la revisión humana → cerrar la Fase 2 y empezar la **Fase 3 (FastAPI)**.
 - Predecir antes de ejecutar (aunque sea solo la dirección).
 - Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
