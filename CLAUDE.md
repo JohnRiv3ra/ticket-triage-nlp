@@ -55,8 +55,8 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 |---|---|---|---|
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
-| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | 🔄 En curso |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | ⏳ |
+| 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 Siguiente |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -362,15 +362,39 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 
   - Frase para el README: "Elegí `C` con validación cruzada de 5 grupos (macro F1 0.677 ± 0.007 con `C=10` → 0.697 con `C=100`; `C=1000` empeoró por sobreajuste). El examen final confirmó la mejora: 0.72 → 0.74."
 
+- **2026-11-09 — Fase 2, sesión 19 (umbral de confianza) → ✅ Fase 2 completada.** Archivo `modelo/08_umbral.py`.
+  - Volví tras 3 días y no recordaba por qué sesión iba → la sección "Próximo paso" sirve justo para eso.
+  - **Confianza** = `predict_proba(...).max()` (qué tan seguro está el modelo de su respuesta). **Umbral** = línea fija que yo elijo: confianza ≥ umbral → decide el modelo; menor → **revisión humana**. Analogía: **barra de salto alto** (subir la barra = menos tickets la saltan).
+  - Recuperé el examen sin guardarlo: mismo CSV + mismo `train_test_split(..., random_state=42, stratify=y)` → los mismos **3.268** tickets (predicción exacta ✅). Solo `transform`, nunca `fit`.
+  - **`.max(axis=1)`** = el máximo **de cada fila** (una confianza por ticket); sin `axis` da un solo número de toda la tabla. `confianza[:10]` = los 10 primeros.
+  - Máscara + **`.sum()`** cuenta los `True`; **`.mean()`** da la **proporción**. f-strings: `:.0%` (porcentaje) y `:.2f` (2 decimales).
+  - Umbral 0.50: 630 de 3.268 (**19 %**) a revisión humana; acierto en los que decide solo **0.73 → 0.82** (predicción "mayor" ✅).
+  - `for` con varios umbrales (como el `for` de `C`):
+
+    | Umbral | Revisión humana | Acierto del modelo |
+    |---|---|---|
+    | 0.50 | 19 % | 0.82 |
+    | **0.60 (elegido)** | **31 %** | **0.86** |
+    | 0.70 | 41 % | 0.90 |
+    | 0.80 | 54 % | 0.92 |
+    | 0.90 | 71 % | 0.94 |
+
+  - **Regla:** subir el umbral → **sube** la revisión humana **y sube** el acierto. Las dos van juntas; no se ganan ambas cosas a la vez (trade-off).
+  - Predicciones fallidas (de ahí salió la lección): al principio dije "revisión humana baja y acierta menos" (al revés en las dos); con 0.90 dije "casi ninguno a revisión humana" → fue **71 %**.
+  - Error sin mensaje: puse el `for` **antes** del `print("Accuracy solo arriba")` → `arriba` quedó con el **último** valor del bucle (0.90) y mostró 0.94 en vez de 0.82 (igual que `ticket` en la sesión 5). Arreglo: el `for` al final.
+  - **Decisión: umbral 0.60** ("el más equilibrado"). En 100 tickets/día: ~31 los revisa una persona y el modelo falla ~10 de los 69 que decide solo.
+  - Nota honesta para el README: el umbral se eligió mirando el examen final (`x_test`); lo más limpio sería un conjunto de validación aparte.
+  - Frase para el README: "Con un umbral de confianza de 0.60, el modelo clasifica solo el 69 % de los tickets con un 86 % de acierto, y envía el 31 % más dudoso a revisión humana (sin umbral: 73 %)."
+  - Pendientes menores: umbral para el modelo de **prioridad** (no hecho); el comentario de `05_receta.py` aún dice `C=10` (el código ya usa `C=100`).
+
 ## Próximo paso
-**Fase 2, sesión 19 (última de la fase): elegir el umbral de confianza.**
-- Empezar con un repaso corto (penales + `glosario.md`). Ir despacio, una idea a la vez.
-- Pregunta: ¿desde qué confianza decide el modelo solo y debajo de cuál va a **revisión humana**? Mirarlo con datos del examen (`predict_proba` sobre `x_test`): cuántos tickets quedan debajo de cada umbral y qué tan bien acierta el modelo en los de arriba.
-- Hacerlo con los modelos de `C=100` (las probabilidades cambiaron).
-- Al terminar → **✅ Fase 2 completada** → empezar la **Fase 3 (FastAPI)**.
+**Fase 3, sesión 1: ¿qué es una API? + primer "Hola mundo" con FastAPI.**
+- Empezar con la **analogía** (el mesero de un restaurante: recibe el pedido, lo lleva a la cocina = modelo, y trae la respuesta) antes de cualquier código. Una idea a la vez.
+- `pip install fastapi uvicorn` → **`pip freeze > requirements.txt`**.
+- Primer endpoint que devuelve un JSON simple; abrirlo en el navegador y en `/docs`.
+- Meta de las siguientes sesiones: cargar los `.pkl` dentro de la API (como `06_cargar.py`) y devolver categoría, prioridad, confianza y si va a revisión humana (umbral 0.60).
 - Predecir antes de ejecutar (aunque sea solo la dirección).
-- Predecir antes de ejecutar (aunque sea solo la dirección).
-- Recordar: `(.venv)` activo y `pip freeze > requirements.txt` si se instala algo.
+- Recordar: `(.venv)` activo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
