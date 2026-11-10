@@ -398,14 +398,31 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **Códigos de estado:** **2xx** bien (200, predicho ✅), **4xx** error del cliente (404 = no está en el menú, predicho "empieza con 4" ✅), **5xx** error dentro de la API.
   - La terminal de `uvicorn` es el **cuaderno del mesero**: `127.0.0.1:23263 - "GET /hola HTTP/1.1" 404 Not Found` = quién, tipo, qué dirección, cómo le fue. Incluso el error llega en JSON (`{"detail":"Not Found"}`).
 
+- **2026-11-10 — Fase 3, sesión 2 (endpoint `POST /clasificar`).** Mismo día que la sesión 1. En `app/main.py`.
+  - **Cargar los `.pkl` una sola vez, al arrancar:** lo que está **fuera** de las funciones se ejecuta una vez al encender `uvicorn`; lo que está **dentro** de una función con `@app...` se ejecuta en cada pedido (la cocina se prepara antes de abrir). Predicción "`Modelos cargados` sale una sola vez aunque recargue" ✅ (salió antes de `Application startup complete`). Con `--reload`, cada vez que guardo se vuelve a cargar (normal mientras programo).
+  - Orden del archivo: `import` arriba → preparar (mesero, modelos, formulario) → endpoints. Mi primera versión funcionaba pero estaba desordenada.
+  - **`pydantic`:** `class Ticket(BaseModel): texto: str` = el **formulario** del pedido (una casilla `texto` de tipo `str`). `class` = un molde (por ahora). Si el pedido no cumple el formulario, se rechaza **antes** de llegar al modelo.
+  - `@app.post("/clasificar")` + `def clasificar(ticket: Ticket)` → `ticket.texto` lee la casilla (con punto, no con corchetes). Primero solo repetía lo recibido (predicción "el mismo texto" ✅).
+  - Probar en `/docs`: fila verde `POST` → "Try it out" → editar el "Request body" (reemplazar `string`, dejando **una** comilla a cada lado) → "Execute". Me costó entender estas instrucciones la primera vez → se explicaron paso a paso.
+  - **422 Unprocessable Entity** (predicción "4, se equivoca el cliente" ✅):
+    - Mandé `"mensaje"` en vez de `"texto"` → `"type": "missing"`, `"loc": ["body", "texto"]`, `"msg": "Field required"`. `pydantic` lo rechazó solo, sin `if`.
+    - Escribí comillas dobles repetidas (`""The app is slow""`) → `"type": "json_invalid"`, `"loc": ["body", 15]` (carácter 15), `"Expecting ',' delimiter"`. "Esperaba una coma" en un lugar raro → casi siempre son las **comillas**.
+  - Conectar la cocina: `nuevo = [ticket.texto]` (lista) → `transform` con **su propio** vectorizador → `predict(...)[0]` (**`[0]`** saca la respuesta del único ticket: `"Billing"` en vez de `["Billing"]`) → `round(predict_proba(...).max(), 2)`. Factura → **Billing and Payments / high / 0.71**, igual que `06_cargar.py` en la sesión 18 (mismos `.pkl` → mismas respuestas). Solo predije el código 200, no el contenido.
+  - **500 Internal Server Error** al agregar `revision_humana = confianza < 0.60`: el navegador no da detalles (no se muestran las tripas de la cocina); el traceback está en la **terminal de `uvicorn`**. Causa: `confianza` viene de numpy, así que la comparación da **`numpy.bool`** ("moneda de otro país") y FastAPI no sabe convertirla a JSON. Arreglo: `bool(confianza < 0.60)` (como `str(id_ticket)` en la Fase 1). El decimal de numpy sí pasaba porque se parece tanto al de Python que FastAPI lo acepta. No lo entendí solo → se explicó con la analogía.
+  - Resultados: factura → `revision_humana: false` (0.71 ≥ 0.60). **"The app is slow" → Product Support / low / 0.93 / false** (predicción `false` ✅).
+  - **Hallazgo:** un ticket de 4 palabras vagas salió **más seguro** (0.93) que la factura (0.71), y en el par más confundido (Technical ↔ Product). Con `C=100` el modelo "habla seguro" y el umbral se eligió con tickets largos del examen → **cambio de distribución** visto en mi propia API. Frase para el README/entrevistas: "Al probar la API descubrí que tickets muy cortos salían con 93 % de confianza aunque eran ambiguos. El umbral de confianza no basta: hay que probar el sistema con casos reales, no solo con el examen."
+  - Pendiente: regla extra, p. ej. tickets con **menos de N palabras → revisión humana** (decidir N mirando datos).
+  - Ya tengo **mi modelo funcionando dentro de una API** 🎉.
+
 ## Próximo paso
-**Fase 3, sesión 2: el endpoint que clasifica tickets.**
-- Repaso corto: restaurante (mesero/cocina/menú), `get` vs `post`, códigos 2xx/4xx/5xx.
-- Cargar los dos `.pkl` en `app/main.py` **una sola vez, al arrancar** (como `06_cargar.py`), no en cada pedido.
-- Endpoint **`POST`** que recibe el texto del ticket (con `pydantic`: `BaseModel`) y devuelve JSON con categoría, prioridad, confianza y `revision_humana` (umbral **0.60**).
-- Probarlo en `/docs` con el ticket de la factura (esperado: Billing / high / 0.71 / no va a revisión).
+**Fase 3, sesión 3: guardar los tickets en una base de datos (SQLite).**
+- Repaso corto: `get` vs `post`, `pydantic` (formulario), 422 vs 500 (¿quién se equivocó?), `numpy.bool` → `bool()`.
+- Para qué: hoy la API clasifica y **olvida** (como las variables en RAM de la sesión 6 de la Fase 1). El panel necesita la lista de tickets guardados.
+- Analogía primero (la base de datos = el archivador del restaurante, una tabla = una hoja de Excel con filas y columnas), luego SQLite con SQLAlchemy (instalar → **`pip freeze > requirements.txt`**).
+- Guardar cada ticket clasificado en `POST /clasificar` y crear `GET /tickets` para listarlos.
+- Más adelante en la fase: regla de tickets cortos → revisión humana; CORS (para que la página web de la Fase 4 pueda llamar a la API).
 - Predecir antes de ejecutar (aunque sea solo la dirección).
-- Recordar: `(.venv)` activo; `pip freeze > requirements.txt` si se instala algo.
+- Recordar: `(.venv)` activo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
