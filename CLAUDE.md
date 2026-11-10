@@ -387,14 +387,25 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Frase para el README: "Con un umbral de confianza de 0.60, el modelo clasifica solo el 69 % de los tickets con un 86 % de acierto, y envía el 31 % más dudoso a revisión humana (sin umbral: 73 %)."
   - Pendientes menores: umbral para el modelo de **prioridad** (no hecho); el comentario de `05_receta.py` aún dice `C=10` (el código ya usa `C=100`).
 
+- **2026-11-10 — Fase 3, sesión 1 (¿qué es una API? + primer endpoint).** Archivo `app/main.py`.
+  - **Analogía del restaurante:** cliente = página web, **mesero = API** (FastAPI), cocina = modelo (`.pkl`), **menú = endpoints**. El cliente nunca entra a la cocina.
+  - Mi respuesta: si cambio el modelo, la API sigue funcionando → afinada: **la página web no tiene que cambiar** mientras el menú y el JSON sean los mismos (**separar responsabilidades**).
+  - `pip install fastapi uvicorn` → 14 librerías (predicción "sí trae extras" ✅). **`fastapi`** = escribir el mesero; **`uvicorn`** = el local abierto que espera pedidos. Vienen `starlette` (base de FastAPI) y `pydantic` (revisa el formato de los datos). El `[notice]` de pip no es un error.
+  - Código: `app = FastAPI()` (mesero vacío) → `@app.get("/")` (la **`@`** pega un cartel en el menú: esa dirección la atiende la función de abajo) → `def inicio(): return {...}` (el diccionario se convierte solo en **JSON**). `get` = "dame información"; `post` = "te mando algo" (para el ticket, próxima sesión).
+  - Encender: `uvicorn app.main:app --reload` desde la raíz (`app.main` = `app/main.py` sin `.py`; `:app` = la variable; `--reload` = reinicia al guardar). El servidor **no termina**: se apaga con **Ctrl+C**.
+  - `http://127.0.0.1:8000` → `127.0.0.1` = esta computadora, `8000` = la puerta. Predije "nada, porque no hay HTML" ✅ a medias: sale **solo el JSON**, sin diseño (la decoración es trabajo de la Fase 4).
+  - **`/docs`** = menú automático de FastAPI → "Try it out" → "Execute" para probar endpoints sin escribir código.
+  - **Códigos de estado:** **2xx** bien (200, predicho ✅), **4xx** error del cliente (404 = no está en el menú, predicho "empieza con 4" ✅), **5xx** error dentro de la API.
+  - La terminal de `uvicorn` es el **cuaderno del mesero**: `127.0.0.1:23263 - "GET /hola HTTP/1.1" 404 Not Found` = quién, tipo, qué dirección, cómo le fue. Incluso el error llega en JSON (`{"detail":"Not Found"}`).
+
 ## Próximo paso
-**Fase 3, sesión 1: ¿qué es una API? + primer "Hola mundo" con FastAPI.**
-- Empezar con la **analogía** (el mesero de un restaurante: recibe el pedido, lo lleva a la cocina = modelo, y trae la respuesta) antes de cualquier código. Una idea a la vez.
-- `pip install fastapi uvicorn` → **`pip freeze > requirements.txt`**.
-- Primer endpoint que devuelve un JSON simple; abrirlo en el navegador y en `/docs`.
-- Meta de las siguientes sesiones: cargar los `.pkl` dentro de la API (como `06_cargar.py`) y devolver categoría, prioridad, confianza y si va a revisión humana (umbral 0.60).
+**Fase 3, sesión 2: el endpoint que clasifica tickets.**
+- Repaso corto: restaurante (mesero/cocina/menú), `get` vs `post`, códigos 2xx/4xx/5xx.
+- Cargar los dos `.pkl` en `app/main.py` **una sola vez, al arrancar** (como `06_cargar.py`), no en cada pedido.
+- Endpoint **`POST`** que recibe el texto del ticket (con `pydantic`: `BaseModel`) y devuelve JSON con categoría, prioridad, confianza y `revision_humana` (umbral **0.60**).
+- Probarlo en `/docs` con el ticket de la factura (esperado: Billing / high / 0.71 / no va a revisión).
 - Predecir antes de ejecutar (aunque sea solo la dirección).
-- Recordar: `(.venv)` activo.
+- Recordar: `(.venv)` activo; `pip freeze > requirements.txt` si se instala algo.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
