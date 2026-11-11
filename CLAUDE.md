@@ -48,6 +48,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 - **Sacar `CLAUDE.md` del repo público** (decidido 2026-11-02 dejarlo para el final): agregar `CLAUDE.md` al `.gitignore` → `git rm --cached CLAUDE.md` (**con** `--cached`, para no borrarlo del disco) → commit y push. Las versiones viejas quedan en el historial (aceptado).
 - Escribir en el README una sección corta **"Qué aprendí construyendo este proyecto"** con lo mejor de la bitácora (versión pulida para reclutadores).
 - Mencionar en el README que el dataset es sintético, su licencia CC-BY-NC-4.0 y cómo descargarlo.
+- **Elegir la base de datos final: PostgreSQL o SQL Server** (pregunta del 2026-11-11). PostgreSQL es más fácil de desplegar gratis; SQL Server es muy usado en bancos y empresas grandes de Guayaquil. Con SQLAlchemy el cambio es sobre todo la línea del `create_engine`.
 - Extra opcional: comparar contra **DistilBERT/BETO entrenado en Google Colab (GPU)** y traer el `.pkl`/modelo con la misma versión de librerías.
 
 ## Hoja de ruta (aprox. 5 meses a 1 h/día)
@@ -414,15 +415,34 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Pendiente: regla extra, p. ej. tickets con **menos de N palabras → revisión humana** (decidir N mirando datos).
   - Ya tengo **mi modelo funcionando dentro de una API** 🎉.
 
+- **2026-11-11 — Fase 3, sesión 3 (guardar tickets en SQLite).** Archivos `app/basedatos.py` y `app/main.py`.
+  - Repaso: `get`/`post` ✅, 422/500 ✅, `bool()` a medias. Confundí `Ticket(BaseModel)` con el mesero → **mesero = `FastAPI()`; formulario = `BaseModel`**. Agregué una sección "API (Fase 3)" a `glosario.md`.
+  - Para qué: la API clasificaba y **olvidaba**. **Base de datos = archivador**, **tabla = hoja**, **fila = un ticket**, **columna = un dato**.
+  - Columnas: dije las 4 del modelo; faltaban **`id`** (número único; distingue dos tickets con el mismo texto) y **`texto`** (sin la pregunta, la respuesta sirve de poco).
+  - **¿Por qué no `.json`?** Hay que cargar y reescribir **todo** el archivo. Con dos usuarios al mismo tiempo, uno sobrescribe al otro y **un ticket se pierde sin error** (predije "la API no responde" ❌: sí responde, el problema es más traicionero).
+  - **SQL Server** (pregunta mía): base de datos de Microsoft, muy usada en bancos y empresas grandes de Ecuador. Las tres (SQLite, PostgreSQL, SQL Server) hablan **SQL**; con SQLAlchemy se cambia sobre todo la línea del `create_engine`. **Decisión pendiente para la Fase 6: PostgreSQL o SQL Server.**
+  - `pip install sqlalchemy` → **2.1.8**. Predije "trae sus librerías" ✅ a medias: necesita `typing-extensions`, pero ya estaba (llegó con `pydantic`) → `Requirement already satisfied`. `pip freeze` hecho.
+  - `app/basedatos.py`: `motor = create_engine("sqlite:///data/tickets.db")` (la **dirección** del archivador; en `data/`, que está en `.gitignore`), `class Base(DeclarativeBase)` (hoja en blanco obligatoria), `class TicketDB(Base)` con `__tablename__ = "tickets"` y columnas `Mapped[...]` (molde de la hoja; `id` con `primary_key=True`, lo numera la base de datos sola), y `Base.metadata.create_all(motor)` = crea las hojas que **todavía no existan** (predicción "si ya está, la deja" ✅).
+  - **Dos moldes:** `Ticket` (formulario del cliente, solo `texto`) y `TicketDB` (hoja del archivador, 6 columnas).
+  - Predije que `tickets.db` aparecería en `data/` ✅ y que se leería como texto ❌: es **binario** (como el `.pkl`); VS Code no lo muestra. Pesa 8 KB aun vacío (trae la hoja sin filas).
+  - Guardar en `POST /clasificar`: `with Session(motor) as sesion:` (una visita al archivador; `with` como en `open`) → `fila = TicketDB(...)` (sin `id`) → `sesion.add(fila)` → **`sesion.commit()`** (el "guardar"; sin él no se guarda nada y **no da error**, como el `json.dump` olvidado de la Fase 1) → `id_ticket = fila.id`. La respuesta ahora incluye `"id"`.
+  - **`import` ejecuta el archivo importado:** al encender `uvicorn` sale `Base de datos lista` **antes** de `Modelos cargados` (línea 5 vs. líneas 10–12).
+  - Dos facturas iguales → `id` 1 y 2 ✅, y el ticket 1 **sobrevivió al Ctrl+C**. SQLite guarda `revision_humana` como **0/1** (no tiene `True`/`False`); SQLAlchemy traduce.
+  - `GET /tickets`: `sesion.scalars(select(TicketDB)).all()` (pregunta "dame todas las filas") + `for` + `append` de diccionarios (completé yo las 6 columnas ✅). Respuesta = **lista de diccionarios** (`[ { }, { } ]`), lo que recibirá la página de la Fase 4. Predicciones: 2 tickets ✅, `false` y no `0` ✅.
+  - Errores (ninguno era de mi código):
+    - Traceback largo con `KeyboardInterrupt` → `During handling of the above exception, another exception occurred` → `CancelledError`. = **dos errores encadenados**; el que explica está **arriba**. Era yo apagando con Ctrl+C (`_on_sigint`); ninguna línea de mi código en el traceback. Las rutas `Python311\Lib\asyncio` son normales (librerías que vienen con Python); las de `.venv\...\site-packages` confirman que el entorno estaba activo.
+    - `ModuleNotFoundError: No module named 'app'` → ejecuté `main.py` con el botón **▷**: Python busca los `import` desde la carpeta del archivo (`app/`) y no encuentra `app/app/`. **`main.py` se enciende solo con `uvicorn app.main:app --reload` desde la raíz.**
+    - En `/docs` ejecuté `GET /` en vez de `GET /tickets` (200, pero era otra puerta).
+  - Ya tengo una API que **clasifica, guarda y lista** 🎉.
+
 ## Próximo paso
-**Fase 3, sesión 3: guardar los tickets en una base de datos (SQLite).**
-- Repaso corto: `get` vs `post`, `pydantic` (formulario), 422 vs 500 (¿quién se equivocó?), `numpy.bool` → `bool()`.
-- Para qué: hoy la API clasifica y **olvida** (como las variables en RAM de la sesión 6 de la Fase 1). El panel necesita la lista de tickets guardados.
-- Analogía primero (la base de datos = el archivador del restaurante, una tabla = una hoja de Excel con filas y columnas), luego SQLite con SQLAlchemy (instalar → **`pip freeze > requirements.txt`**).
-- Guardar cada ticket clasificado en `POST /clasificar` y crear `GET /tickets` para listarlos.
-- Más adelante en la fase: regla de tickets cortos → revisión humana; CORS (para que la página web de la Fase 4 pueda llamar a la API).
-- Predecir antes de ejecutar (aunque sea solo la dirección).
-- Recordar: `(.venv)` activo.
+**Fase 3, sesión 4: ver tickets uno por uno y filtrar.**
+- Repaso corto: archivador/hoja/fila, `create_all`, sesión + `commit()`, por qué el ▷ da `ModuleNotFoundError`.
+- `GET /tickets/{id}` (un solo ticket) y qué pasa si el `id` no existe → **404** a propósito (`HTTPException`).
+- Filtrar: p. ej. solo los de `revision_humana = true` (la bandeja de la persona que revisa) o por prioridad.
+- Más adelante en la fase: regla de tickets cortos → revisión humana; guardar la **fecha** de cada ticket; CORS (para que la página web de la Fase 4 pueda llamar a la API).
+- Explicar una idea a la vez, analogía primero; predecir antes de ejecutar (aunque sea solo la dirección).
+- Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).
