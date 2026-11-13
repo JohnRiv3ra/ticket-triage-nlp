@@ -452,14 +452,26 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **`False` ≠ `None`:** con `if revision_humana:` el `=false` no filtraría (devolvería los 3, sin error); `is not None` pregunta "¿mandó la instrucción?". No entendí la pregunta → se explicó con una tabla. **Repasarlo en la sesión 5.**
   - Hoy casi no hice predicciones al final (sesión larga, cansado).
 
+- **2026-11-13 — Fase 3, sesión 5 (repaso, filtro por prioridad y fecha).** En `app/main.py` y `app/basedatos.py`. Se subió junto con la sesión 4 (su commit había quedado pendiente).
+  - Repaso de la sesión 4: "manos vacías" = `None` ✅, `HTTPException` ✅, `.where` = condición ✅; no recordé el 500 de leer `None` con seguridad. `False` ≠ `None` se repasó con el formulario "¿Fumas?" (Ana `True`, Beto `False`, Carla `None`).
+  - **Filtro `?prioridad=`:** primero dupliqué toda la función como `/tickets/prioridad/{prioridad}` → se borró; lo correcto era agregar un parámetro opcional (`prioridad: str | None = None`) y un segundo `if ... is not None:` con `.where`. **Escribí yo el segundo `if`.** Los filtros se combinan con **`&`**: `?prioridad=high&revision_humana=true` → solo el ticket 3.
+  - Errores sin mensaje: mis cambios **no estaban guardados** (punto ● en la pestaña → Ctrl+S) y luego `uvicorn` seguía sirviendo **el código viejo** (`?prioridad=low` devolvía los 3). Lección: si algo "no hace caso", **guardar y reiniciar `uvicorn`** antes de buscar el error en mi código. Que el resultado coincida con mi predicción no prueba que esté bien.
+  - **`[]` con 200 vs. 404:** pedir **una cosa concreta** que no existe (`/tickets/99`) → 404; pedir **una lista** sin coincidencias (`?prioridad=low`) → 200 con `[]` ("hoy no hay pasteles de fresa").
+  - **Fecha:** `from datetime import datetime` (viene con Python, sin `pip install`) y `fecha: Mapped[datetime] = mapped_column(default=datetime.now)` = **sello automático de "RECIBIDO"**: lo pone la API, no el cliente. **Sin paréntesis** = se entrega la máquina de sellar (una hora por ticket); con `()` todos tendrían la hora del arranque, sin error.
+  - Predije que `create_all` agregaría la columna ❌ → `sqlite3.OperationalError: no such column: tickets.fecha`. El traceback muestra la pregunta real en **SQL** (`SELECT tickets.id, tickets.fecha, ... FROM tickets`). `create_all` solo mira si la hoja **existe**; no la modifica. En una empresa se usa una **migración** (**Alembic**); como mis datos eran de prueba: Ctrl+C (en Windows el archivo en uso no se deja borrar) → `Remove-Item data\tickets.db` → encender → `[]` (predicción ✅).
+  - Predije que la fecha **no** saldría en la respuesta aunque estuviera guardada ✅, con la razón correcta: **el archivador decide qué se guarda; el mesero decide qué se muestra**. Agregué `"fecha": fila.fecha` en `listar_tickets` y `ver_ticket` (lo mismo dos veces → refactorizar en una función).
+  - Formato: `"2026-11-13T15:15:03.912357"` = **ISO 8601** (año-mes-día, `T`, hora). Se queda así en la API (estándar, sin confusión día/mes, se ordena bien); ponerlo bonito (`13/11/2026 15:15`) es trabajo de la página web (Fase 4). FastAPI sí convierte `datetime` a JSON (no como `numpy.bool`).
+  - `POST /clasificar` todavía **no** devuelve la `fecha` (solo los listados).
+
 ## Próximo paso
-**Fase 3, sesión 5: repaso de la sesión 4 + más filtros + fecha del ticket.**
-- **Repaso (pedido por mí):** `None` y "mirar las manos del archivista", `raise HTTPException` (404 vs. 500), el `?` (parámetro de consulta), `.where`, función sin `return` → `null`, **`False` ≠ `None`** (`is not None`). Una idea a la vez, con la analogía primero.
-- Filtro por **prioridad** (`?prioridad=high`) yo solo, copiando el patrón de `revision_humana` (practicar sin ayuda).
-- Guardar la **fecha** de cada ticket (columna nueva → ¿qué pasa con la hoja que ya existe si `create_all` no la toca?).
-- Más adelante en la fase: regla de tickets cortos → revisión humana; refactorizar el diccionario repetido en `listar_tickets` y `ver_ticket` (función propia); CORS (para la Fase 4).
+**Fase 3, sesión 6: refactorizar + regla de tickets cortos.**
+- Repaso corto: `create_all` no modifica hojas existentes (migración vs. borrar datos de prueba), `default=datetime.now` sin paréntesis, archivador vs. mesero, `[]` (200) vs. 404, reiniciar `uvicorn`.
+- **Refactorizar:** el diccionario de 7 columnas se repite en `listar_tickets` y `ver_ticket` → una función propia (p. ej. `fila_a_diccionario(fila)`). Prueba: las respuestas deben salir **idénticas** (como `entrenar()` en la Fase 2).
+- Que `POST /clasificar` también devuelva la `fecha`.
+- **Regla de tickets cortos:** menos de N palabras → `revision_humana = True` ("The app is slow" salió con 0.93). Decidir N mirando datos.
+- Más adelante en la fase: CORS (para la Fase 4); quizás filtro por categoría y orden por fecha (más nuevos primero).
 - Predecir antes de ejecutar (aunque sea solo una letra).
-- Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷.
+- Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
 - Terminar con `git add → commit → push`.
 
 > Al terminar cada sesión, actualiza la bitácora y el "Próximo paso" de este archivo (pídeme permiso antes).

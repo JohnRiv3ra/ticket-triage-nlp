@@ -39,15 +39,17 @@ def clasificar(ticket: Ticket):
     return {"id": id_ticket, "categoria": categoria, "prioridad": prioridad, "confianza": confianza, "revision_humana": revision_humana}
 
 @app.get("/tickets")
-def listar_tickets(revision_humana: bool | None = None):
+def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = None):
     with Session(motor) as sesion:
         consulta = select(TicketDB)
         if revision_humana is not None:
             consulta = consulta.where(TicketDB.revision_humana == revision_humana)
+        if prioridad is not None:
+            consulta = consulta.where(TicketDB.prioridad == prioridad)
         filas = sesion.scalars(consulta).all()
         resultado = []
         for fila in filas:
-            resultado.append({"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana})
+            resultado.append({"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana, "fecha": fila.fecha})
     return resultado
 
 
@@ -57,6 +59,6 @@ def ver_ticket(id_ticket: int):
         fila = sesion.get(TicketDB, id_ticket)
         if fila is None:
             raise HTTPException(status_code=404, detail="Ticket no encontrado")
-        return {"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana}
+        return {"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana, "fecha": fila.fecha}
 
 
