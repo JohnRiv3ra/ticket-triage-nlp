@@ -435,13 +435,30 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
     - En `/docs` ejecuté `GET /` en vez de `GET /tickets` (200, pero era otra puerta).
   - Ya tengo una API que **clasifica, guarda y lista** 🎉.
 
+- **2026-11-12 — Fase 3, sesión 4 (un ticket por `id`, 404 y filtro).** En `app/main.py`.
+  - Repaso: tabla/fila/columna ✅ (dije "columna = atributo", buena palabra; la "hoja en blanco" era `Base`, no la tabla), `create_all` ✅, `commit()` olvidado ✅. No recordé por qué ▷ falla → "buscar la cocina estando **dentro** de la cocina".
+  - Para qué: el panel necesita **un** ticket (clic en el #57) y **bandejas** (solo revisión humana), no siempre los 10.000.
+  - Predije **404** para un `id` inexistente ✅ (se equivoca el cliente; 200 vacío sería mentir; 500 = API rota).
+  - `@app.get("/tickets/{id_ticket}")` + `def ver_ticket(id_ticket: int)` = dirección con **hueco**; `sesion.get(TicketDB, id_ticket)` = "tráeme la hoja con este `id`". Completé yo el diccionario ✅.
+  - Resultados: `1` → 200 ✅. `abc` → `/docs` no dejó enviarlo; desde la **barra del navegador** (los `get` se piden así) → **422** `int_parsing`, `loc: ["path", "id_ticket"]`, sin escribir ningún `if`. `99` → **500** (predije 4xx ❌).
+  - Leí el traceback de `uvicorn` (ayuda para encontrarlo: Ctrl+C → `cls` → encender → pedir el 99): `AttributeError: 'NoneType' object has no attribute 'id'` en `main.py` línea 54, `^^^` bajo `fila.id`. **`sesion.get` devuelve `None` sin avisar** si no encuentra la hoja.
+  - **No entendí la lección al principio** → funcionó la analogía del **archivista que vuelve con las manos vacías**: el problema no es que la hoja no exista, sino **leerla sin mirar antes**. Respondí bien las 3 preguntas (trae nada / se bloquea la API / mirar las manos del archivista) y luego se tradujo a código.
+  - Arreglo: `from fastapi import FastAPI, HTTPException` + `if fila is None: raise HTTPException(status_code=404, detail="Ticket no encontrado")`. **`raise`** = lanzar un error a propósito; corta la función como `return`. Primero escribí `if not fila:` (funciona; `is None` es más preciso) y luego lo cambié. Resultado: 99 → `{"detail":"Ticket no encontrado"}` (mismo formato que el 404 de FastAPI), 1 → 200 ✅. Sin `Traceback` en la terminal: **error controlado (404) vs. API rota (500)**.
+  - Ticket vago *"Hello, I need help with my account"* → `id` 3, **0.26**, `revision_humana: true` (3 predicciones ✅). Salió *Technical Support / high* sin decir nada del problema → por eso existe la revisión humana.
+  - **Parámetro de consulta** (*query parameter*) = "instrucciones extra" después del **`?`** (`café, sin azúcar`): `/tickets?revision_humana=true`. Antes de programarlo, la API lo **ignoró** y devolvió los 3 (mesero que no conoce la instrucción; sin error).
+  - Código: `def listar_tickets(revision_humana: bool | None = None)` (**`= None`** = opcional; `/tickets` sigue igual) → `consulta = select(TicketDB)` → `if revision_humana is not None: consulta = consulta.where(TicketDB.revision_humana == revision_humana)` (**`.where`** = "donde", una máscara como en pandas, pero la hace el archivador) → `sesion.scalars(consulta).all()`.
+  - Error sin mensaje: copié literalmente los **`...`** del tutor (culpa del tutor por no aclararlo) → se borraron el `for` y el `return` → todo salía **`null`**. `...` es código válido en Python; **una función sin `return` devuelve `None`** → `null` en JSON.
+  - Resultado: `/tickets` → 3, `?revision_humana=true` → 1 (id 3, la **bandeja de revisión**), `=false` → 2. Mismo endpoint, distintas instrucciones.
+  - **`False` ≠ `None`:** con `if revision_humana:` el `=false` no filtraría (devolvería los 3, sin error); `is not None` pregunta "¿mandó la instrucción?". No entendí la pregunta → se explicó con una tabla. **Repasarlo en la sesión 5.**
+  - Hoy casi no hice predicciones al final (sesión larga, cansado).
+
 ## Próximo paso
-**Fase 3, sesión 4: ver tickets uno por uno y filtrar.**
-- Repaso corto: archivador/hoja/fila, `create_all`, sesión + `commit()`, por qué el ▷ da `ModuleNotFoundError`.
-- `GET /tickets/{id}` (un solo ticket) y qué pasa si el `id` no existe → **404** a propósito (`HTTPException`).
-- Filtrar: p. ej. solo los de `revision_humana = true` (la bandeja de la persona que revisa) o por prioridad.
-- Más adelante en la fase: regla de tickets cortos → revisión humana; guardar la **fecha** de cada ticket; CORS (para que la página web de la Fase 4 pueda llamar a la API).
-- Explicar una idea a la vez, analogía primero; predecir antes de ejecutar (aunque sea solo la dirección).
+**Fase 3, sesión 5: repaso de la sesión 4 + más filtros + fecha del ticket.**
+- **Repaso (pedido por mí):** `None` y "mirar las manos del archivista", `raise HTTPException` (404 vs. 500), el `?` (parámetro de consulta), `.where`, función sin `return` → `null`, **`False` ≠ `None`** (`is not None`). Una idea a la vez, con la analogía primero.
+- Filtro por **prioridad** (`?prioridad=high`) yo solo, copiando el patrón de `revision_humana` (practicar sin ayuda).
+- Guardar la **fecha** de cada ticket (columna nueva → ¿qué pasa con la hoja que ya existe si `create_all` no la toca?).
+- Más adelante en la fase: regla de tickets cortos → revisión humana; refactorizar el diccionario repetido en `listar_tickets` y `ver_ticket` (función propia); CORS (para la Fase 4).
+- Predecir antes de ejecutar (aunque sea solo una letra).
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷.
 - Terminar con `git add → commit → push`.
 

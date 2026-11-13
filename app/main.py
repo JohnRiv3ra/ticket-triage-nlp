@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 from sqlalchemy.orm import Session
@@ -39,11 +39,24 @@ def clasificar(ticket: Ticket):
     return {"id": id_ticket, "categoria": categoria, "prioridad": prioridad, "confianza": confianza, "revision_humana": revision_humana}
 
 @app.get("/tickets")
-def listar_tickets():
+def listar_tickets(revision_humana: bool | None = None):
     with Session(motor) as sesion:
-        filas = sesion.scalars(select(TicketDB)).all()
+        consulta = select(TicketDB)
+        if revision_humana is not None:
+            consulta = consulta.where(TicketDB.revision_humana == revision_humana)
+        filas = sesion.scalars(consulta).all()
         resultado = []
         for fila in filas:
             resultado.append({"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana})
     return resultado
+
+
+@app.get("/tickets/{id_ticket}")
+def ver_ticket(id_ticket: int):
+    with Session(motor) as sesion:
+        fila = sesion.get(TicketDB, id_ticket)
+        if fila is None:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        return {"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana}
+
 
