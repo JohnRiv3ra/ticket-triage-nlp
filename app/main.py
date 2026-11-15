@@ -39,7 +39,8 @@ def clasificar(ticket: Ticket):
     categoria = modelo_cat.predict(x_cat)[0]
     prioridad = modelo_pri.predict(x_pri)[0]
     confianza = round(modelo_cat.predict_proba(x_cat).max(), 2)
-    revision_humana = bool(confianza < 0.60)
+    palabras = len(ticket.texto.split())
+    revision_humana = bool(confianza < 0.60 or palabras < 10)
     with Session(motor) as sesion:
         fila = TicketDB(texto=ticket.texto, categoria=categoria, prioridad=prioridad,
                         confianza=confianza, revision_humana=revision_humana)
