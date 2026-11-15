@@ -57,7 +57,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
 | 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (6 sesiones desde 2026-11-10) |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (7 sesiones desde 2026-11-10) |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -472,13 +472,28 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Predije 5 claves y salieron 5… pero era **`uvicorn` sirviendo el código viejo** (igual que en la sesión 5). Ctrl+C → encender → **7 claves**, `id` 3 (el ticket 2 sí se guardó aunque la respuesta fuera la vieja). Otra vez: **coincidir con la predicción no prueba que esté bien**.
   - Hallazgo: *"I cannot log in… my password is incorrect"* → **Billing and Payments**, confianza **0.48** → `revision_humana: true`. El modelo se equivocó, pero **el umbral lo detectó solo** y lo mandó a una persona.
   - Creé un prompt de contexto para usar Gemini como tutor en paralelo (lo que avance ahí debo copiarlo yo a esta bitácora).
-  - Pendiente: instalar **Rainbow CSV** y revisar extensiones de VS Code recomendadas.
+  - Extensiones de VS Code recomendadas: **Error Lens**, **indent-rainbow** (por mis errores de sangría), **SQLite Viewer** (para ver `tickets.db`), Rainbow CSV, Path Intellisense, Material Icon Theme, Git Graph. Fase 4: Live Server y Prettier. **No** instalar autocompletado con IA (Copilot, etc.) por ahora: quiero aprender escribiendo a mano.
+
+- **2026-11-15 — Fase 3, sesión 7 (regla de tickets cortos).** Mismo día que la sesión 6. Commit y push hechos (`e9843fc`). Archivos `modelo/09_palabras.py` y `app/main.py`.
+  - Repaso: refactorización bien hecha = **la respuesta** sale idéntica (dije "las mismas filas"; las filas ni se tocan) ✅ a medias; la fila se lee dentro del `with` porque afuera "no hay a quién preguntarle" ✅; la respuesta vieja → se reinicia **`uvicorn`** (el local), no "el main" (la receta) ✅.
+  - **Por qué el modelo sale tan seguro con textos cortos:** dije "no sabe qué hacer y bota por botar" ✅ → afinado: **bota con seguridad**, así que **no sabe que no sabe**. Nunca vio tickets tan cortos (cambio de distribución), una sola palabra decide todo y con `C=100` "habla seguro". Analogía del **doctor**: el paciente dice solo "me duele" → no se receta con 93 % de seguridad.
+  - **Contar palabras de una columna:** `df["texto"].str.split().str.len()` (`split` corta en lista de palabras, `len` las cuenta). **`.describe()`** = resumen: `count`, `mean`, `std`, `min`, `25%`/`50%`/`75%` (cuartiles: formar los tickets en fila del más corto al más largo) y `max`.
+  - Resultado: `min` **2**, mediana **60** (no 55 como en la Fase 2: ahora se cuenta `subject` + `body`), `max` **175**. Predije 50 y 100 ❌ ❌ → fallar fue útil: un ticket de 2 palabras era la sorpresa.
+  - Máscara `df[df["palabras"] < 10]` → **188** tickets (predije 20 ❌), solo el **1.2 %**. Los cortos del dataset son **específicos** (*unauthorized access*, *downtime*, *SaaS*), a diferencia de "The app is slow" → lo que importa es la **información**, no solo las palabras; contar palabras es una regla simple a propósito (mejora futura).
+  - `for` con `.mean()` y `:.1%`: menos de 5 → 0.1 %, 10 → **1.2 %**, 15 → 5.0 %, 20 → 9.6 %, 30 → 18.7 % (predije 15 %, "menos que el 25 %" ✅). Salto de 10 a 15 (×4) → por debajo de 10 el modelo está en territorio casi desconocido.
+  - **Decisión: N = 10.** Comprobado con mis tickets: "The app is slow" (4) y "Hello…" (7) → revisión; la factura (11) pasa. Ojo honesto: los porcentajes son del **dataset**; los usuarios reales escriben más corto, así que la regla podría atrapar más tickets en la vida real.
+  - Código en `clasificar`: `palabras = len(ticket.texto.split())` (un solo texto → sin `.str`) y `revision_humana = bool(confianza < 0.60 or palabras < 10)` (`or` de la Fase 1: basta que una sea `True`).
+  - Error en `/docs`: escribí `{ {texto: "The app is slow"} }` → **422 `json_invalid`**, `loc: ["body", 4]`, *"Expecting property name enclosed in double quotes"* → llaves de más y `texto` sin comillas. JSON es más estricto que Python: **solo comillas dobles**, un solo par de llaves. Correcto: `{"texto": "The app is slow"}`.
+  - Resultados: "The app is slow" → confianza **0.93** (igual: el modelo no cambió) pero `revision_humana: true` ✅. Factura → 0.71, `false` (predicciones ✅ ✅) → la regla no rompió nada.
+  - **El modelo opina (confianza), las reglas del sistema deciden (revisión humana).** Dos redes de seguridad: umbral 0.60 (atrapó "I cannot log in…", 0.48) y menos de 10 palabras (atrapó "The app is slow", 0.93).
+  - Frase para el README: "Al probar la API vi que tickets muy cortos salían con alta confianza aunque eran ambiguos. Medí el dataset: solo el 1.2 % de los tickets de entrenamiento tenía menos de 10 palabras. Agregué una regla: menos de 10 palabras → revisión humana, además del umbral de confianza 0.60."
 
 ## Próximo paso
-**Fase 3, sesión 7: regla de tickets cortos.**
-- Repaso corto: refactorizar = mismo resultado, mejor organización; por qué `fila_a_diccionario` no lleva `@app`; por qué la fila se lee **dentro** del `with`; lista vacía (200 `[]`) vs. cosa inexistente (404).
-- **Regla de tickets cortos:** menos de N palabras → `revision_humana = True` ("The app is slow" salió con 0.93). Decidir N **mirando datos** (p. ej. cuántas palabras tienen los tickets del dataset: la mediana era 55).
-- Más adelante en la fase: CORS (para la Fase 4); quizás filtro por categoría y orden por fecha (más nuevos primero).
+**Fase 3, sesión 8: CORS (preparar la API para la página web de la Fase 4).**
+- Repaso corto: `.describe()` y cuartiles; por qué N = 10 (1.2 % del dataset); `or` en `revision_humana`; JSON solo con comillas dobles; "el modelo opina, las reglas deciden".
+- **CORS:** qué es (el navegador no deja que una página de otra "dirección" le hable a la API si la API no lo permite) y cómo activarlo en FastAPI.
+- Opcional: los números `0.60` y `10` están "sueltos" dentro de la función → guardarlos arriba como constantes con nombre (p. ej. `UMBRAL_CONFIANZA`, `MIN_PALABRAS`).
+- Más adelante en la fase: filtro por categoría y orden por fecha (más nuevos primero).
 - Predecir antes de ejecutar (aunque sea solo una letra).
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
 - Terminar con `git add → commit → push`.
