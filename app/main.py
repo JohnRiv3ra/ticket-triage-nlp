@@ -16,6 +16,17 @@ print("Modelos cargados")
 class Ticket(BaseModel):
     texto: str
 
+def fila_a_diccionario(fila):
+    return {
+        "id": fila.id,
+        "fecha": fila.fecha,
+        "texto": fila.texto,
+        "categoria": fila.categoria,
+        "prioridad": fila.prioridad,
+        "confianza": fila.confianza,
+        "revision_humana": fila.revision_humana
+    }
+
 @app.get("/")
 def inicio():
     return {"message": "Hola, bienvenido a la API de los tickets!"}
@@ -34,9 +45,9 @@ def clasificar(ticket: Ticket):
                         confianza=confianza, revision_humana=revision_humana)
         sesion.add(fila)
         sesion.commit()
-        id_ticket = fila.id
+        respuesta = fila_a_diccionario(fila)
 
-    return {"id": id_ticket, "categoria": categoria, "prioridad": prioridad, "confianza": confianza, "revision_humana": revision_humana}
+    return respuesta
 
 @app.get("/tickets")
 def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = None):
@@ -49,16 +60,15 @@ def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = 
         filas = sesion.scalars(consulta).all()
         resultado = []
         for fila in filas:
-            resultado.append({"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana, "fecha": fila.fecha})
-    return resultado
-
-
+            resultado.append(fila_a_diccionario(fila))
+        return resultado
+    
 @app.get("/tickets/{id_ticket}")
 def ver_ticket(id_ticket: int):
     with Session(motor) as sesion:
         fila = sesion.get(TicketDB, id_ticket)
         if fila is None:
             raise HTTPException(status_code=404, detail="Ticket no encontrado")
-        return {"id": fila.id, "texto": fila.texto, "categoria": fila.categoria, "prioridad": fila.prioridad, "confianza": fila.confianza, "revision_humana": fila.revision_humana, "fecha": fila.fecha}
+        return fila_a_diccionario(fila)
 
 
