@@ -57,7 +57,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
 | 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 Siguiente |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (6 sesiones desde 2026-11-10) |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -463,12 +463,21 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Formato: `"2026-11-13T15:15:03.912357"` = **ISO 8601** (año-mes-día, `T`, hora). Se queda así en la API (estándar, sin confusión día/mes, se ordena bien); ponerlo bonito (`13/11/2026 15:15`) es trabajo de la página web (Fase 4). FastAPI sí convierte `datetime` a JSON (no como `numpy.bool`).
   - `POST /clasificar` todavía **no** devuelve la `fecha` (solo los listados).
 
+- **2026-11-15 — Fase 3, sesión 6 (refactorizar con `fila_a_diccionario` + fecha en `POST /clasificar`).** Commit y push hechos (`28501d7`). En `app/main.py`.
+  - Repaso: `create_all` → dije "borras la orden"; lo correcto es que **no hace nada** si la hoja ya existe (no la revisa ni le agrega columnas). Migración = **Alembic** ✅. `default=datetime.now` ✅ (con `()` todos los tickets tendrían la hora del arranque). `?prioridad=low` sin resultados → dije 404 ❌: es **200 con `[]`** (pedir una **lista** vacía no es error; pedir **una cosa** que no existe sí → 404). Sin `HTTPException`, `/tickets/99` daría **500** ✅.
+  - **Refactorizar:** el diccionario de 7 columnas estaba escrito dos veces (dos "plantillas" del mismo formulario: si cambias una y olvidas la otra, un endpoint muestra el dato y el otro no, **sin error**). Creé `def fila_a_diccionario(fila)` y por mi cuenta lo escribí **en varias líneas** (una columna por línea, más fácil de leer). Los endpoints ahora hacen `resultado.append(fila_a_diccionario(fila))` y `return fila_a_diccionario(fila)`.
+  - La función **no lleva `@app`** ✅: `@app` pega el cartel en el menú; esta es una herramienta interna de la cocina.
+  - Predicción "saldrá igual" ✅ con la razón correcta → que salga **idéntico** es la prueba de una buena refactorización.
+  - **Pregunté yo** por qué no usarla también en `clasificar` → había una **tercera plantilla** (5 claves, sin `fecha` ni `texto`). Cambio: `respuesta = fila_a_diccionario(fila)` **dentro** del `with` (la `fecha` la pone el archivador; para leerla la fila debe seguir conectada) y `return respuesta` fuera.
+  - Predije 5 claves y salieron 5… pero era **`uvicorn` sirviendo el código viejo** (igual que en la sesión 5). Ctrl+C → encender → **7 claves**, `id` 3 (el ticket 2 sí se guardó aunque la respuesta fuera la vieja). Otra vez: **coincidir con la predicción no prueba que esté bien**.
+  - Hallazgo: *"I cannot log in… my password is incorrect"* → **Billing and Payments**, confianza **0.48** → `revision_humana: true`. El modelo se equivocó, pero **el umbral lo detectó solo** y lo mandó a una persona.
+  - Creé un prompt de contexto para usar Gemini como tutor en paralelo (lo que avance ahí debo copiarlo yo a esta bitácora).
+  - Pendiente: instalar **Rainbow CSV** y revisar extensiones de VS Code recomendadas.
+
 ## Próximo paso
-**Fase 3, sesión 6: refactorizar + regla de tickets cortos.**
-- Repaso corto: `create_all` no modifica hojas existentes (migración vs. borrar datos de prueba), `default=datetime.now` sin paréntesis, archivador vs. mesero, `[]` (200) vs. 404, reiniciar `uvicorn`.
-- **Refactorizar:** el diccionario de 7 columnas se repite en `listar_tickets` y `ver_ticket` → una función propia (p. ej. `fila_a_diccionario(fila)`). Prueba: las respuestas deben salir **idénticas** (como `entrenar()` en la Fase 2).
-- Que `POST /clasificar` también devuelva la `fecha`.
-- **Regla de tickets cortos:** menos de N palabras → `revision_humana = True` ("The app is slow" salió con 0.93). Decidir N mirando datos.
+**Fase 3, sesión 7: regla de tickets cortos.**
+- Repaso corto: refactorizar = mismo resultado, mejor organización; por qué `fila_a_diccionario` no lleva `@app`; por qué la fila se lee **dentro** del `with`; lista vacía (200 `[]`) vs. cosa inexistente (404).
+- **Regla de tickets cortos:** menos de N palabras → `revision_humana = True` ("The app is slow" salió con 0.93). Decidir N **mirando datos** (p. ej. cuántas palabras tienen los tickets del dataset: la mediana era 55).
 - Más adelante en la fase: CORS (para la Fase 4); quizás filtro por categoría y orden por fecha (más nuevos primero).
 - Predecir antes de ejecutar (aunque sea solo una letra).
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
