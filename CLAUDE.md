@@ -57,7 +57,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
 | 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (7 sesiones desde 2026-11-10) |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (8 sesiones desde 2026-11-10) |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -488,13 +488,21 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - **El modelo opina (confianza), las reglas del sistema deciden (revisión humana).** Dos redes de seguridad: umbral 0.60 (atrapó "I cannot log in…", 0.48) y menos de 10 palabras (atrapó "The app is slow", 0.93).
   - Frase para el README: "Al probar la API vi que tickets muy cortos salían con alta confianza aunque eran ambiguos. Medí el dataset: solo el 1.2 % de los tickets de entrenamiento tenía menos de 10 palabras. Agregué una regla: menos de 10 palabras → revisión humana, además del umbral de confianza 0.60."
 
+- **2026-11-16 — Fase 3, sesión 8 (CORS).** Commit y push hechos (`f4296fe`). En `app/main.py`.
+  - Repaso: mediana ✅ a medias (no es que la mitad tenga 60 palabras: el ticket **del medio** tiene 60 → mitad con 60 o menos, mitad con 60 o más). N = 10 ✅ a medias (no medimos que el modelo "falle": medimos que solo el **1.2 %** del dataset tenía menos de 10 palabras → territorio desconocido). `0.93 or 4 palabras` → razoné bien ("va a revisión humana") pero dije `False`: es **`True`** (primero preguntarse qué **significa** la variable). `{'texto': ...}` ❌ → JSON solo acepta **comillas dobles**. No recordé "**el modelo opina, las reglas deciden**".
+  - **CORS** = **lista de visitas permitidas**. Analogía: la API es una oficina; el **navegador es el guardia**. `/docs` es "de la casa" (`127.0.0.1:8000`); la página de la Fase 4 (Live Server, `127.0.0.1:5500`) será una **visita**. Sin la lista, el guardia bloquea la respuesta. La lista la escribe la API, pero quien la hace cumplir es el navegador.
+  - Predicción con trampa: dije "la API no recibe el pedido" ❌ → para un `GET` la API **sí lo recibe**, responde **200** y lo anota en `uvicorn`; el guardia bloquea la **respuesta** cuando vuelve. Lección: con un error de CORS, `uvicorn` muestra 200 y aun así la página no recibe nada (el error se ve en la consola del navegador).
+  - Probar sin página web: segunda terminal + `curl.exe -i -H "Origin: http://127.0.0.1:5500" http://127.0.0.1:8000/tickets` (**`.exe`** porque en PowerShell `curl` es otro comando; **`-i`** = ver los **encabezados**, las "etiquetas del sobre"; **`-H`** = agregar un encabezado, aquí "vengo de 5500"). Antes del cambio: los tickets llegaban, pero **sin** la línea `access-control-allow-origin` (el sello). No escribí la predicción antes de ejecutar.
+  - Código: `from fastapi.middleware.cors import CORSMiddleware` + `app.add_middleware(CORSMiddleware, allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"], allow_methods=["*"], allow_headers=["*"])` justo debajo de `app = FastAPI()`. **Middleware** = **recepcionista**: todas las respuestas pasan por él → no se toca ningún endpoint. `127.0.0.1` y `localhost` son la misma computadora, pero el guardia compara el **texto exacto**. `allow_origins=["*"]` funciona, pero deja la puerta abierta a cualquiera → mejor una lista concreta.
+  - Resultados (predicciones ✅ ✅): `5500` → `access-control-allow-origin: http://127.0.0.1:5500` (el sello lleva **el nombre de la visita**); `9999` → sin sello. En las dos aparece `vary: Origin` (señal de que hay recepcionista, no es el sello). Dije "si fuera 8000, sí" ❌: el recepcionista solo mira **su lista**, no el puerto de la API.
+  - La API ya está lista para la página web de la Fase 4.
+
 ## Próximo paso
-**Fase 3, sesión 8: CORS (preparar la API para la página web de la Fase 4).**
-- Repaso corto: `.describe()` y cuartiles; por qué N = 10 (1.2 % del dataset); `or` en `revision_humana`; JSON solo con comillas dobles; "el modelo opina, las reglas deciden".
-- **CORS:** qué es (el navegador no deja que una página de otra "dirección" le hable a la API si la API no lo permite) y cómo activarlo en FastAPI.
-- Opcional: los números `0.60` y `10` están "sueltos" dentro de la función → guardarlos arriba como constantes con nombre (p. ej. `UMBRAL_CONFIANZA`, `MIN_PALABRAS`).
-- Más adelante en la fase: filtro por categoría y orden por fecha (más nuevos primero).
-- Predecir antes de ejecutar (aunque sea solo una letra).
+**Fase 3, sesión 9: constantes con nombre + filtro por categoría y orden por fecha.**
+- Repaso corto: qué es CORS (guardia = navegador, lista = API); por qué `uvicorn` muestra 200 aunque haya error de CORS; qué es un middleware; para qué sirven `-i` y `-H` en `curl.exe`; `True`/`False` de `revision_humana` con `or`.
+- Los números `0.60` y `10` están "sueltos" dentro de `clasificar` → guardarlos arriba como constantes con nombre (p. ej. `UMBRAL_CONFIANZA`, `MIN_PALABRAS`).
+- Filtro `?categoria=` (como `?prioridad=`) y orden por fecha (más nuevos primero, `.order_by(...)`).
+- Predecir antes de ejecutar (aunque sea solo una letra), **escribiendo la predicción antes**.
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
 - Terminar con `git add → commit → push`.
 

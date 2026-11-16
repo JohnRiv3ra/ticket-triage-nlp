@@ -11,13 +11,16 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
-    allow_methods=["*"],
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 
 vectorizador_cat, modelo_cat = joblib.load("models/modelo_categoria.pkl")
 vectorizador_pri, modelo_pri = joblib.load("models/modelo_prioridad.pkl")
 print("Modelos cargados")
+
+UMBRAL_CONFIANZA = 0.60 #ticket con confianza menor a 0.60 se revisa manualmente
+MINIMO_PALABRAS = 10 #ticket con menos de 10 palabras se revisa manualmente
 
 class Ticket(BaseModel):
     texto: str
@@ -46,7 +49,7 @@ def clasificar(ticket: Ticket):
     prioridad = modelo_pri.predict(x_pri)[0]
     confianza = round(modelo_cat.predict_proba(x_cat).max(), 2)
     palabras = len(ticket.texto.split())
-    revision_humana = bool(confianza < 0.60 or palabras < 10)
+    revision_humana = bool(confianza < UMBRAL_CONFIANZA or palabras < MINIMO_PALABRAS)
     with Session(motor) as sesion:
         fila = TicketDB(texto=ticket.texto, categoria=categoria, prioridad=prioridad,
                         confianza=confianza, revision_humana=revision_humana)
@@ -57,13 +60,16 @@ def clasificar(ticket: Ticket):
     return respuesta
 
 @app.get("/tickets")
-def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = None):
+def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = None, categoria: str | None = None):
     with Session(motor) as sesion:
         consulta = select(TicketDB)
         if revision_humana is not None:
             consulta = consulta.where(TicketDB.revision_humana == revision_humana)
         if prioridad is not None:
             consulta = consulta.where(TicketDB.prioridad == prioridad)
+        if categoria is not None:
+            consulta = consulta.where(TicketDB.categoria == categoria)
+        consulta = consulta.order_by(TicketDB.fecha.desc())
         filas = sesion.scalars(consulta).all()
         resultado = []
         for fila in filas:
