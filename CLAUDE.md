@@ -57,7 +57,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
 | 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (8 sesiones desde 2026-11-10) |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (9 sesiones desde 2026-11-10) |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -497,11 +497,24 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Resultados (predicciones ✅ ✅): `5500` → `access-control-allow-origin: http://127.0.0.1:5500` (el sello lleva **el nombre de la visita**); `9999` → sin sello. En las dos aparece `vary: Origin` (señal de que hay recepcionista, no es el sello). Dije "si fuera 8000, sí" ❌: el recepcionista solo mira **su lista**, no el puerto de la API.
   - La API ya está lista para la página web de la Fase 4.
 
+- **2026-11-16 — Fase 3, sesión 9 (constantes, filtro por categoría y orden por fecha).** Mismo día que la sesión 8. Commit y push hechos (`eb9ffce`, junto con la bitácora de la sesión 8). En `app/main.py`.
+  - Repaso: guardia = navegador ✅; la lista la escribe **la API** y el middleware (recepcionista) la usa ✅ a medias; `-i` = encabezados ✅; no contesté lo del 200 ni lo del middleware. `0.80 y 25 palabras` → `False` ✅, pero expliqué "cumple una condición, va a revisión" (al revés: **ninguna** se cumple → **no** va a revisión).
+  - **Truco:** leer la variable como pregunta: *"¿Revisión humana?"* → `True` = sí, `False` = no. Y leer `<` en voz alta: `palabras < MINIMO_PALABRAS` = "¿tiene **menos** de…?".
+  - **Números mágicos** (`0.60`, `10` sueltos dentro de la función) → **constantes** en MAYÚSCULAS arriba del archivo (convención, Python no lo obliga): `UMBRAL_CONFIANZA = 0.60` y `MINIMO_PALABRAS = 10`, con comentarios míos. El nombre lo elijo yo; debe coincidir en todos lados. Predicción "sale igual, `true`" ✅ (refactorización).
+  - Experimento con `MINIMO_PALABRAS = 3`: predije `true` ❌ → **`false`** ("¿4 es **menor** que 3?" → no; `False or False` = `False`). Que 4 sea **mayor** significa que la regla **no** lo atrapa. Con 5 respondí bien: `True` porque 4 < 5 ✅. El `false` también probó que `uvicorn` usaba el código nuevo. Una sola línea cambia el comportamiento de todo el sistema → para eso sirve la perilla con nombre.
+  - **Filtro `?categoria=`:** lo escribí **solo** (parámetro opcional + tercer `if ... is not None:` con `.where`) ✅.
+  - Error sin mensaje: salían los 8 tickets. Primero miré la "Request URL" de **otra caja** (`POST /clasificar`; cada endpoint en `/docs` tiene la suya) y luego la casilla `categoria` no aparecía → `uvicorn`/página viejos (**tercera vez**, tras las sesiones 5 y 6). Regla: **Ctrl+S → reiniciar `uvicorn` → F5**.
+  - `%20` = un **espacio** dentro de una dirección web (lo pone el navegador). `billing and payments` en minúsculas → **200 con `[]`**: `.where` compara **texto exacto** (`"Hardware"` ≠ `"hardware"`). En la Fase 4: **menú desplegable** con las categorías exactas. `Billing and Payments` → 4 tickets (ids 1, 2, 3, 5); dije "creo yo" → **comprobar contando**, no creer.
+  - **Orden:** `consulta = consulta.order_by(TicketDB.fecha.desc())` **antes** de `sesion.scalars(...)` (es parte de la pregunta). `desc` = de más nuevo a más viejo; `asc` = al revés. Predicciones ✅ ✅: sin filtros 8 → 1; Billing 5, 3, 2, 1. Los `.where` eligen **qué**; el `.order_by` decide **en qué orden**.
+  - Hallazgo: el ticket 8 ("The app is slow", hecho con `MINIMO_PALABRAS = 3`) quedó con `revision_humana: false` → **la base de datos guarda la decisión del momento; cambiar la regla no reescribe el pasado**. Idea para el README/Fase 6: guardar con qué umbral se decidió cada ticket.
+  - Volví a olvidar escribir predicciones antes de ejecutar en algunos pasos.
+
 ## Próximo paso
-**Fase 3, sesión 9: constantes con nombre + filtro por categoría y orden por fecha.**
-- Repaso corto: qué es CORS (guardia = navegador, lista = API); por qué `uvicorn` muestra 200 aunque haya error de CORS; qué es un middleware; para qué sirven `-i` y `-H` en `curl.exe`; `True`/`False` de `revision_humana` con `or`.
-- Los números `0.60` y `10` están "sueltos" dentro de `clasificar` → guardarlos arriba como constantes con nombre (p. ej. `UMBRAL_CONFIANZA`, `MIN_PALABRAS`).
-- Filtro `?categoria=` (como `?prioridad=`) y orden por fecha (más nuevos primero, `.order_by(...)`).
+**Fase 3, sesión 10: la persona corrige al modelo (endpoint para la revisión humana).**
+- Repaso corto: números mágicos y constantes; `True`/`False` leyendo la variable como pregunta; `%20`; por qué `billing and payments` da `[]` y no 404; `.order_by(... .desc())` va **antes** de pedir las filas; por qué el ticket 8 no cambió.
+- Para qué: la revisión humana hoy solo **marca** tickets dudosos; falta que la persona pueda **corregir** la categoría/prioridad y marcarlo como revisado. Nuevo tipo de pedido: **`PATCH`** ("modifica una parte de algo que ya existe"), p. ej. `PATCH /tickets/{id}`, con 404 si no existe.
+- Opcional: guardar las correcciones humanas sirve después para **reentrenar** el modelo (idea para el README).
+- Después de eso, evaluar si la Fase 3 está lista para pasar a la Fase 4 (HTML + CSS + JavaScript).
 - Predecir antes de ejecutar (aunque sea solo una letra), **escribiendo la predicción antes**.
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
 - Terminar con `git add → commit → push`.
