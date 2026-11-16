@@ -4,10 +4,16 @@ import joblib
 from sqlalchemy.orm import Session
 from app.basedatos import motor, TicketDB
 from sqlalchemy import select
-
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 vectorizador_cat, modelo_cat = joblib.load("models/modelo_categoria.pkl")
 vectorizador_pri, modelo_pri = joblib.load("models/modelo_prioridad.pkl")
