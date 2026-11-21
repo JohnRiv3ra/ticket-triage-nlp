@@ -25,6 +25,10 @@ MINIMO_PALABRAS = 10 #ticket con menos de 10 palabras se revisa manualmente
 class Ticket(BaseModel):
     texto: str
 
+
+class Correccion(BaseModel):
+    categoria: str
+
 def fila_a_diccionario(fila):
     return {
         "id": fila.id,
@@ -59,6 +63,7 @@ def clasificar(ticket: Ticket):
 
     return respuesta
 
+
 @app.get("/tickets")
 def listar_tickets(revision_humana: bool | None = None, prioridad: str | None = None, categoria: str | None = None):
     with Session(motor) as sesion:
@@ -82,6 +87,17 @@ def ver_ticket(id_ticket: int):
         fila = sesion.get(TicketDB, id_ticket)
         if fila is None:
             raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        return fila_a_diccionario(fila)
+
+@app.patch("/tickets/{id_ticket}")
+def corregir_ticket(id_ticket: int, correccion: Correccion):
+    with Session(motor) as sesion:
+        fila = sesion.get(TicketDB, id_ticket)
+        if fila is None:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        fila.categoria = correccion.categoria
+        fila.revision_humana = False
+        sesion.commit()
         return fila_a_diccionario(fila)
 
 
