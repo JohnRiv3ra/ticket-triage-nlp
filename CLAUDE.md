@@ -57,7 +57,7 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
 | 0. Entorno | 1 semana | Python, VS Code, Git, GitHub | ✅ Completada |
 | 1. Python | 3 semanas | Variables, funciones, listas, diccionarios, archivos | ✅ Completada (7 sesiones, 2026-10-25 → 2026-10-30) |
 | 2. El modelo | 4 semanas | pandas, limpieza de texto, TF-IDF, métricas (accuracy, F1, matriz de confusión) | ✅ Completada (19 sesiones, 2026-10-30 → 2026-11-09) |
-| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (9 sesiones desde 2026-11-10) |
+| 3. API | 3 semanas | FastAPI, endpoints, SQLite | 🔄 En curso (10 sesiones desde 2026-11-10) |
 | 4. Web básica | 4 semanas | HTML, CSS, JavaScript | ⏳ |
 | 5. React | 4 semanas | Componentes, estado, llamadas a la API | ⏳ |
 | 6. Pulido | 2–3 semanas | README, despliegue, extras | ⏳ |
@@ -509,12 +509,27 @@ Cuando el modelo en inglés funcione, agregar español y **comparar con métrica
   - Hallazgo: el ticket 8 ("The app is slow", hecho con `MINIMO_PALABRAS = 3`) quedó con `revision_humana: false` → **la base de datos guarda la decisión del momento; cambiar la regla no reescribe el pasado**. Idea para el README/Fase 6: guardar con qué umbral se decidió cada ticket.
   - Volví a olvidar escribir predicciones antes de ejecutar en algunos pasos.
 
+- **2026-11-21 — Fase 3, sesión 10 (`PATCH`: la persona corrige al modelo).** Commit y push hechos (`0f421d6`). En `app/main.py`.
+  - Volví después de ~5 días (capacitación del trabajo y tesis).
+  - Repaso: `0.85 y 25 palabras` → `False` ✅. `billing and payments` → 200 ✅, pero lo expliqué como "ingresa algo correcto": es **"busqué y no hay coincidencias"** (lista vacía ≠ error). Ticket 8 no cambió ✅ → mejor analogía: **boleta ya impresa** (la regla nueva solo afecta a los tickets que lleguen después).
+  - **`PATCH`** = el **jefe de cocina con lapicero**: corrige **una parte** de una comanda que **ya existe** (*patch* = parche). `GET` lee, `POST` crea uno nuevo, `PATCH` corrige.
+  - Un `PATCH` necesita dos cosas: **cuál** (el `id`, en la **dirección**, como en `ver_ticket`) y **qué cambiar** (en el **cuerpo**, como el `texto` en `clasificar`). Dije "el ticket y las categorías" ✅ casi. Predije **200** para el #99 que no existe ❌ → es **404** (`HTTPException` era la herramienta correcta, pero el número es 404).
+  - Código: formulario `class Correccion(BaseModel): categoria: str` (junto a `Ticket`; la puse entre endpoints y la moví: **primero se prepara, después los endpoints**) + `@app.patch("/tickets/{id_ticket}")` / `def corregir_ticket(id_ticket: int, correccion: Correccion)` → `sesion.get` → `if fila is None: raise HTTPException(404)` (copiado de `ver_ticket`: reusar un patrón está bien si lo entiendo) → `fila.categoria = correccion.categoria` (el lapicero) → `fila.revision_humana = False` → `sesion.commit()` → `return fila_a_diccionario(fila)`. Dos endpoints pueden compartir dirección si el tipo de pedido es distinto.
+  - Escribí la versión completa yo solo (el tutor pedía solo "repetir lo recibido" primero), pero con `revision_humana = True`. Leyéndola como pregunta ("¿**necesita** revisión humana?" → ya la revisó una persona) llegué a **`False`** ✅. Con `True` el ticket se quedaba para siempre en la bandeja, **sin error**.
+  - Me confundí con los números de línea al explicar el código → el tutor lo puso en una tabla línea por línea. Recordé mal que el 404 significa "no hay coincidencias": **404 = esa cosa no existe**; **200 `[]` = la lista no tiene coincidencias**.
+  - Color de `PATCH` en `/docs`: predije naranja ❌ → **turquesa** (naranja es `PUT`).
+  - Prueba: `PATCH /tickets/3` con `{"categoria": "Technical Support"}` (el *"I cannot log in…"* que salió Billing) → `revision_humana: false` ✅ y **desapareció de la bandeja** `?revision_humana=true` ✅. `PATCH /tickets/99` → **404** ✅ (revancha).
+  - No supe qué `id` anotar → se explicó: el número `"id"` del bloque del ticket en la respuesta de `GET /tickets`.
+  - Olvidé cómo encender todo: `.venv\Scripts\Activate.ps1` → `uvicorn app.main:app --reload` → `/docs`.
+  - **Problema detectado:** el ticket 3 ahora dice `Technical Support` con `confianza 0.48`, pero ese 0.48 era la seguridad en **Billing**, y lo que dijo el modelo se perdió (el lapicero lo tachó). Idea: guardar **lo que dijo el modelo** y **lo que corrigió la persona** por separado → contar errores del modelo y **reentrenar** con las correcciones.
+  - Ya tengo el ciclo completo: llega → el modelo opina → las reglas mandan a revisión → **la persona corrige** → sale de la bandeja 🎉.
+
 ## Próximo paso
-**Fase 3, sesión 10: la persona corrige al modelo (endpoint para la revisión humana).**
-- Repaso corto: números mágicos y constantes; `True`/`False` leyendo la variable como pregunta; `%20`; por qué `billing and payments` da `[]` y no 404; `.order_by(... .desc())` va **antes** de pedir las filas; por qué el ticket 8 no cambió.
-- Para qué: la revisión humana hoy solo **marca** tickets dudosos; falta que la persona pueda **corregir** la categoría/prioridad y marcarlo como revisado. Nuevo tipo de pedido: **`PATCH`** ("modifica una parte de algo que ya existe"), p. ej. `PATCH /tickets/{id}`, con 404 si no existe.
-- Opcional: guardar las correcciones humanas sirve después para **reentrenar** el modelo (idea para el README).
-- Después de eso, evaluar si la Fase 3 está lista para pasar a la Fase 4 (HTML + CSS + JavaScript).
+**Fase 3, sesión 11: guardar la corrección sin perder lo que dijo el modelo.**
+- Repaso corto: qué hace `PATCH` y en qué se diferencia de `POST`; de dónde vienen el `id` (dirección) y la corrección (cuerpo); por qué `revision_humana = False` después de corregir; 404 (no existe) vs. 200 `[]` (lista sin coincidencias).
+- Para qué: hoy el lapicero **borra** la categoría del modelo. Agregar columnas como `categoria_humana` (o `categoria_modelo` + `categoria_final`) y quizás `revisado`. **Ojo:** `create_all` no agrega columnas a una hoja que ya existe → habrá que borrar `data/tickets.db` otra vez (sesión 5) o hablar de migraciones (Alembic).
+- Opcional: permitir corregir también la **prioridad** (casilla opcional en `Correccion`, `str | None = None`, y solo cambiarla si llega → `is not None`, como en los filtros).
+- Después, evaluar si la Fase 3 está lista para pasar a la Fase 4 (HTML + CSS + JavaScript).
 - Predecir antes de ejecutar (aunque sea solo una letra), **escribiendo la predicción antes**.
 - Recordar: `(.venv)` activo; encender con `uvicorn`, no con ▷; **Ctrl+S** y, si algo no cambia, **reiniciar `uvicorn`**.
 - Terminar con `git add → commit → push`.
